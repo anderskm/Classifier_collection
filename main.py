@@ -20,6 +20,7 @@ import src.utils as utils
 from src.data import dataset_manager
 from src.models.BasicModel import BasicModel
 from src.models.logreg_example import logreg_example
+from src.models.VGG import VGG
 from src.visualization import visualize
 
 
@@ -61,7 +62,8 @@ def parse_args():
                         type=str, 
                         default='BasicModel', 
                         choices=['BasicModel',
-                                 'LogReg_example'],
+                                 'LogReg_example',
+                                 'VGG'],
                         #required = True,
                         help='The name of the network model')
 
@@ -132,6 +134,12 @@ def main():
 
         elif args.model == 'LogReg_example':
             model = logreg_example(
+                dataset = args.dataset,
+                id = args.id)
+            model.train(hparams_string = args.hparams)
+
+        elif args.model == 'VGG':
+            model = VGG(
                 dataset = args.dataset,
                 id = args.id)
             model.train(hparams_string = args.hparams)

@@ -162,6 +162,7 @@ def _convert_to_tfrecord(filenames, class_dict, tfrecord_writer):
                     )
 
                 tfrecord_writer.write(example.SerializeToString())
+        print('\n')
         
 
 def _get_output_filename(dataset_dir, shard_id):
