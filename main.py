@@ -13,6 +13,7 @@ __author__ = "Simon Leminen Madsen"
 __email__ = "slm@eng.au.dk"
 
 import os
+import GPUtil
 import argparse
 import datetime
 
@@ -23,6 +24,8 @@ from src.models.logreg_example import logreg_example
 from src.models.VGG import VGG
 from src.visualization import visualize
 
+DEVICE_ID_LIST = GPUtil.getFirstAvailable(attempts = 100, interval = 120)
+os.environ["CUDA_VISIBLE_DEVICES"] = str(DEVICE_ID_LIST[0])
 
 """parsing and configuration"""
 def parse_args():
