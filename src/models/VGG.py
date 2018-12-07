@@ -165,10 +165,7 @@ class VGG(object):
         dataset = dataset.shuffle(buffer_size = 10000, seed = None)
         dataset = dataset.batch(batch_size = self.batch_size)
         iterator = dataset.make_initializable_iterator()
-        inputs = iterator.get_next()
-
-        # depends on self._preProcessData
-        [in_image, in_label] = inputs
+        input_getBatch = iterator.get_next()
 
         input_images = tf.placeholder(
             dtype = tf.float32, 
@@ -245,7 +242,7 @@ class VGG(object):
                 utils.show_message('Running training epoch no: {0}'.format(epoch_n))
                 while True:
                     try:
-                        image_batch, lbl_batch, unst_noise_batch = sess.run(input_getBatch)
+                        image_batch, lbl_batch = sess.run(input_getBatch)
                         _, summary_loss = sess.run(
                             [optimizer_op, summary_op],
                             feed_dict={input_images:    image_batch,
