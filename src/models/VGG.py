@@ -235,9 +235,9 @@ class VGG(object):
                 sess.run(iterator.initializer)
 
                 # Test model output before any training
-                if epoch_n == 0:
-                    summary_loss = sess.run(summary_op)
-                    writer.add_summary(summary_loss, global_step=-1)
+                # if epoch_n == 0:
+                #     summary_loss = sess.run(summary_op)
+                #     writer.add_summary(summary_loss, global_step=-1)
                 
                 utils.show_message('Running training epoch no: {0}'.format(epoch_n))
                 while True:
