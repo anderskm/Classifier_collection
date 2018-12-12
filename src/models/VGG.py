@@ -169,7 +169,7 @@ class VGG(object):
 
         input_images = tf.placeholder(
             dtype = tf.float32, 
-            shape = [self.batch_size] + self.image_dims, 
+            shape = [None] + self.image_dims, 
             name = 'input_images')
         input_lbls = tf.placeholder(
             dtype = tf.float32,   
