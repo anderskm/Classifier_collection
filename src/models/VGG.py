@@ -207,10 +207,11 @@ class VGG(object):
         with tf.Session() as sess:
             
             # Initialize all model Variables.
+            sess.run(tf.global_variables_initializer())
+
             if self.use_imagenet:
                 init_fn(sess)
-            else:
-                sess.run(tf.global_variables_initializer())
+                
             
             # Create Saver object for loading and storing checkpoints
             saver = tf.train.Saver()
