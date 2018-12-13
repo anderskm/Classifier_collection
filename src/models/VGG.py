@@ -12,6 +12,10 @@ import argparse
 import shlex
 from tensorflow.contrib import slim
 from tensorflow.contrib.slim.nets import vgg
+from tensorflow.contrib import layers
+from tensorflow.contrib.layers.python.layers import layers as layers_lib
+from tensorflow.contrib.framework.python.ops import arg_scope
+#from tensorflow.python.ops import variable_scope
 
 import src.utils as utils
 import src.data.util_data as util_data
@@ -75,13 +79,11 @@ class VGG(object):
 
         self.dataset = dataset
         # Specify valid dataset for model
-        if dataset == 'MNIST':
-            self.dateset_filenames = ['data/processed/MNIST/train.tfrecord']
-            self.num_classes = 10
-        elif dataset =='PSD_Segmented':
+        if dataset =='PSD_Segmented':
             self.dateset_filenames = ['data/processed/PSD_Segmented/PSD-data_{:03d}-of-{:03d}.tfrecord'.format(i+1,psd_dataset._NUM_SHARDS) for i in range(psd_dataset._NUM_SHARDS)]
             self.lbls_dim = 9
-            self.image_dims = [224,224,3]
+            self.image_dims = [128,128,3]
+            self.fc6_dims = [4,4] # 128/(2^5) = 4
 
         else:
             raise ValueError('Selected Dataset is not supported by model: ' + self.model)
@@ -94,9 +96,39 @@ class VGG(object):
         Returns:
         """
         if self.model_version == 'VGG16':
-            logits, _ = vgg.vgg_16(inputs, num_classes=self.lbls_dim)
+            #_, end_points  = vgg.vgg_16(inputs)
+
+            dropout_keep_prob = 0.5
+            is_training = True
+
+            with tf.variable_scope('vgg_16'):
+                with arg_scope([layers.conv2d, layers_lib.fully_connected, layers_lib.max_pool2d]):
+                    net = layers_lib.repeat(inputs, 2, layers.conv2d, 64, [3, 3], scope='conv1')
+                    net = layers_lib.max_pool2d(net, [2, 2], scope='pool1')
+                    net = layers_lib.repeat(net, 2, layers.conv2d, 128, [3, 3], scope='conv2')
+                    net = layers_lib.max_pool2d(net, [2, 2], scope='pool2')
+                    net = layers_lib.repeat(net, 3, layers.conv2d, 256, [3, 3], scope='conv3')
+                    net = layers_lib.max_pool2d(net, [2, 2], scope='pool3')
+                    net = layers_lib.repeat(net, 3, layers.conv2d, 512, [3, 3], scope='conv4')
+                    net = layers_lib.max_pool2d(net, [2, 2], scope='pool4')
+                    net = layers_lib.repeat(net, 3, layers.conv2d, 512, [3, 3], scope='conv5')
+                    net = layers_lib.max_pool2d(net, [2, 2], scope='pool5')
+
+            #net = end_points['vgg_16/pool5']
+            net = layers.conv2d(net, 4096, self.fc6_dims, padding='VALID', scope='fc6')
+            net = layers_lib.dropout(net, dropout_keep_prob, is_training=is_training, scope='dropout6')
+            net = layers.conv2d(net, 4096, [1, 1], scope='fc7')
+            net = layers_lib.dropout(net, dropout_keep_prob, is_training=is_training, scope='dropout7')
+            net = layers.conv2d(net, self.lbls_dim, [1, 1], activation_fn=None, normalizer_fn=None, scope='fc8')
+
+            logits = net
+
         elif self.model_version == 'VGG19':
-            logits, _ = vgg.vgg_19(inputs, num_classes=self.lbls_dim)
+            outputs, end_points  = vgg.vgg_19(inputs, num_classes=self.lbls_dim)
+
+            logits = outputs
+
+
 
         return logits
     
