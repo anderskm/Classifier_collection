@@ -11,15 +11,15 @@ import matplotlib.pyplot as plt
 import argparse
 import shlex
 from tensorflow.contrib import slim
-from tensorflow.contrib.slim.nets import vgg
-from tensorflow.contrib import layers
 from tensorflow.contrib.layers.python.layers import layers as layers_lib
-from tensorflow.contrib.framework.python.ops import arg_scope
-#from tensorflow.python.ops import variable_scope
 
 import src.utils as utils
 import src.data.util_data as util_data
 import src.data.datasets.psd as psd_dataset
+
+layers = tf.contrib.layers
+framework = tf.contrib.framework
+ds = tf.contrib.distributions
 
 
 def hparams_parser_train(hparams_string):
@@ -89,20 +89,16 @@ class VGG(object):
             raise ValueError('Selected Dataset is not supported by model: ' + self.model)
         
        
-    def _create_inference(self, inputs):
+    def _create_inference(self, inputs, is_training = True, dropout_keep_prob = 0.5):
         """ Define the inference model for the network
         Args:
     
         Returns:
         """
         if self.model_version == 'VGG16':
-            #_, end_points  = vgg.vgg_16(inputs)
-
-            dropout_keep_prob = 0.5
-            is_training = True
-
             with tf.variable_scope('vgg_16'):
-                with arg_scope([layers.conv2d, layers_lib.fully_connected, layers_lib.max_pool2d]):
+                with framework.arg_scope([layers.conv2d, layers_lib.fully_connected, layers_lib.max_pool2d]):
+                    # From tensorflow.contrib.slim.nets.vgg.vgg_16
                     net = layers_lib.repeat(inputs, 2, layers.conv2d, 64, [3, 3], scope='conv1')
                     net = layers_lib.max_pool2d(net, [2, 2], scope='pool1')
                     net = layers_lib.repeat(net, 2, layers.conv2d, 128, [3, 3], scope='conv2')
@@ -114,21 +110,38 @@ class VGG(object):
                     net = layers_lib.repeat(net, 3, layers.conv2d, 512, [3, 3], scope='conv5')
                     net = layers_lib.max_pool2d(net, [2, 2], scope='pool5')
 
-            #net = end_points['vgg_16/pool5']
-            net = layers.conv2d(net, 4096, self.fc6_dims, padding='VALID', scope='fc6')
-            net = layers_lib.dropout(net, dropout_keep_prob, is_training=is_training, scope='dropout6')
-            net = layers.conv2d(net, 4096, [1, 1], scope='fc7')
-            net = layers_lib.dropout(net, dropout_keep_prob, is_training=is_training, scope='dropout7')
-            net = layers.conv2d(net, self.lbls_dim, [1, 1], activation_fn=None, normalizer_fn=None, scope='fc8')
+                    # Custom fc layers to allow variable input image size
+                    net = layers.conv2d(net, 4096, self.fc6_dims, padding='VALID', scope='fc6')
+                    net = layers_lib.dropout(net, dropout_keep_prob, is_training=is_training, scope='dropout6')
+                    net = layers.conv2d(net, 4096, [1, 1], scope='fc7')
+                    net = layers_lib.dropout(net, dropout_keep_prob, is_training=is_training, scope='dropout7')
+                    net = layers.conv2d(net, self.lbls_dim, [1, 1], activation_fn=None, normalizer_fn=None, scope='fc8')
 
-            logits = net
+                    logits = net
 
         elif self.model_version == 'VGG19':
-            outputs, end_points  = vgg.vgg_19(inputs, num_classes=self.lbls_dim)
+            with tf.variable_scope('vgg_19'):
+                with framework.arg_scope([layers.conv2d, layers_lib.fully_connected, layers_lib.max_pool2d]):
+                    # From tensorflow.contrib.slim.nets.vgg.vgg_19
+                    net = layers_lib.repeat(inputs, 2, layers.conv2d, 64, [3, 3], scope='conv1')
+                    net = layers_lib.max_pool2d(net, [2, 2], scope='pool1')
+                    net = layers_lib.repeat(net, 2, layers.conv2d, 128, [3, 3], scope='conv2')
+                    net = layers_lib.max_pool2d(net, [2, 2], scope='pool2')
+                    net = layers_lib.repeat(net, 4, layers.conv2d, 256, [3, 3], scope='conv3')
+                    net = layers_lib.max_pool2d(net, [2, 2], scope='pool3')
+                    net = layers_lib.repeat(net, 4, layers.conv2d, 512, [3, 3], scope='conv4')
+                    net = layers_lib.max_pool2d(net, [2, 2], scope='pool4')
+                    net = layers_lib.repeat(net, 4, layers.conv2d, 512, [3, 3], scope='conv5')
+                    net = layers_lib.max_pool2d(net, [2, 2], scope='pool5')
 
-            logits = outputs
+                    # Custom fc layers to allow variable input image size
+                    net = layers.conv2d(net, 4096, self.fc6_dims, padding='VALID', scope='fc6')
+                    net = layers_lib.dropout(net, dropout_keep_prob, is_training=is_training, scope='dropout6')
+                    net = layers.conv2d(net, 4096, [1, 1], scope='fc7')
+                    net = layers_lib.dropout(net, dropout_keep_prob, is_training=is_training, scope='dropout7')
+                    net = layers.conv2d(net, self.lbls_dim, [1, 1], activation_fn=None, normalizer_fn=None, scope='fc8')
 
-
+                    logits = net
 
         return logits
     
@@ -220,21 +233,24 @@ class VGG(object):
 
         if self.use_imagenet:
             if self.model_version == 'VGG16':
-                url_imagenet_model = "http://download.tensorflow.org/models/vgg_16_2016_08_28.tar.gz"
-                utils.download_and_uncompress_tarball(url_imagenet_model,self.dir_checkpoints)
+                path_imagenet_ckpt = os.path.join(self.dir_checkpoints, 'vgg_16.ckpt')
+                if not tf.gfile.Exists(path_imagenet_ckpt):
+                    url_imagenet_model = "http://download.tensorflow.org/models/vgg_16_2016_08_28.tar.gz"
+                    utils.download_and_uncompress_tarball(url_imagenet_model,self.dir_checkpoints)
 
                 variables_to_restore = slim.get_model_variables('vgg_16')
-                init_fn = slim.assign_from_checkpoint_fn(
-                    os.path.join(self.dir_checkpoints, 'vgg_16.ckpt'),
-                    variables_to_restore[:-2])
+                variables_to_restore = variables_to_restore[:-6] # ignore fc layers
+                init_fn = slim.assign_from_checkpoint_fn(path_imagenet_ckpt, variables_to_restore)
+
             elif self.model_version == 'VGG19':
-                url_imagenet_model = "http://download.tensorflow.org/models/vgg_19_2016_08_28.tar.gz"
-                utils.download_and_uncompress_tarball(url_imagenet_model,self.dir_checkpoints)
+                path_imagenet_ckpt = os.path.join(self.dir_checkpoints, 'vgg_19.ckpt')
+                if not tf.gfile.Exists(path_imagenet_ckpt):
+                    url_imagenet_model = "http://download.tensorflow.org/models/vgg_19_2016_08_28.tar.gz"
+                    utils.download_and_uncompress_tarball(url_imagenet_model,self.dir_checkpoints)
 
                 variables_to_restore = slim.get_model_variables('vgg_19')
-                init_fn = slim.assign_from_checkpoint_fn(
-                    os.path.join(self.dir_checkpoints, 'vgg_19.ckpt'),
-                    variables_to_restore[:-2])
+                variables_to_restore = variables_to_restore[:-6] # ignore fc layers
+                init_fn = slim.assign_from_checkpoint_fn(path_imagenet_ckpt, variables_to_restore)
         
         with tf.Session() as sess:
             
