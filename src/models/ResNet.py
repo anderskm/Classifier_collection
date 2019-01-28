@@ -601,11 +601,12 @@ class ResNet(object):
                     # print('T' + str(epoch_n) + ' ' + str(batchCounter)  + ' ' + str(lbl_idx) + ' ' + str(lbl_idx_predict) + ' ' + str(loss_out))
                     # print('T' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' ' + '{:>9.3f}'.format(loss_out) + ' ' + ' '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsTrain]))
 
-                    # TODO: overwrite previous output. stdout.flush?
                     # print('T' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' Loss: ' + '{:>7.3g}'.format(loss_out) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsTrain]))
-                    self._show_progress('T', epoch_n, batchCounter, math.ceil(float(dataset_sizes[0])/float(self.batch_size)), loss_out, CMatsTrain)
+                    self._show_progress('TR', epoch_n, batchCounter, math.ceil(float(dataset_sizes[0])/float(self.batch_size)), loss_out, CMatsTrain)
                         
                     # except tf.errors.OutOfRangeError:
+
+                print('\n')
 
                 # Print accumulated confusion matricx for each output
                 for i, CMat in enumerate(CMatsTrain):
@@ -686,10 +687,11 @@ class ResNet(object):
 
                         # print('V' + str(epoch_n) + ' ' + str(batchCounter)  + ' ' + str(loss_out) + ' '.join([str(CMat.accuracy()) for CMat in CMatsVal]))
 
-                        # TODO: overwrite previous output. stdout.flush?
                         # print('V' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' Loss: ' + '{:>7.3g}'.format(loss_out) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsVal]))
+                        self._show_progress('VA', epoch_n, batchCounter, math.ceil(float(dataset_sizes[0])/float(self.batch_size)), loss_out, CMatsVal)
                             
                         # except tf.errors.OutOfRangeError:
+                    print('\n')
                     for i, CMat in enumerate(CMatsVal):
                         CMat.Save('ConfMat_Val_output' + '{:02d}'.format(i) + '.csv','csv')
                         CMat.Save(os.path.join(self.dir_logs, 'ConfMat_Val_output' + '{:02d}'.format(i) + '.csv'),'csv')
