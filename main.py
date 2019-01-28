@@ -181,6 +181,11 @@ def main():
                 id = args.id)
             model.evaluate(hparams_string = args.hparams)
 
+        elif args.model == 'ResNet':
+            model = ResNet(dataset = args.dataset,
+                id = args.id)
+            model.evaluate(hparams_string = args.hparams, preprocessing_params=args.preprocess)
+
 
     # Visualize results
     if args.visualize:
@@ -188,6 +193,7 @@ def main():
         #################################
         ####### To Be Implemented #######
         #################################
+        raise NotImplementedError('Visualization has not yet been implemented.')
     
 
 if __name__ == '__main__':
