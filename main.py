@@ -22,6 +22,7 @@ from src.data import dataset_manager
 from src.models.BasicModel import BasicModel
 from src.models.logreg_example import logreg_example
 from src.models.VGG import VGG
+from src.models.ResNet import ResNet
 from src.visualization import visualize
 
 DEVICE_ID_LIST = GPUtil.getFirstAvailable(attempts = 100, interval = 120)
@@ -66,15 +67,21 @@ def parse_args():
                         default='BasicModel', 
                         choices=['BasicModel',
                                  'LogReg_example',
-                                 'VGG'],
+                                 'VGG',
+                                 'ResNet'],
                         #required = True,
                         help='The name of the network model')
 
     parser.add_argument('--dataset', 
-                        type=str, default='MNIST', 
+                        type=str, default='custom_jpeg', 
                         choices=['MNIST',
                                  'PSD_Nonsegmented',
-                                 'PSD_Segmented'],
+                                 'PSD_Segmented',
+                                 'custom_jpeg',
+                                 'seeds_all',
+                                 'barley_d0',
+                                 'barley_next',
+                                 'barley_next_stratified'],
                         #required = True,
                         help='The name of dataset')  
     
@@ -90,6 +97,10 @@ def parse_args():
     parser.add_argument('--hparams',
                         type=str, default = '',
                         help='CLI arguments for the model wrapped in a string')
+    
+    parser.add_argument('--preprocess',
+                        type=str, default = '',
+                        help='Specify the preprocessing steps with assossiated parameters.')
 
     return check_args(parser.parse_args())
 
@@ -103,7 +114,7 @@ def check_args(args):
 #        except:
 #            print('hparams not provided for training')
 #            exit()
-        
+    print(args)
     return args
 
 
@@ -146,6 +157,12 @@ def main():
                 dataset = args.dataset,
                 id = args.id)
             model.train(hparams_string = args.hparams)
+
+        elif args.model == 'ResNet':
+            model = ResNet(dataset = args.dataset,
+                id = args.id)
+            model.train(hparams_string = args.hparams, preprocessing_params=args.preprocess)
+            
     
 
     # Evaluate model
