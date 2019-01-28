@@ -35,10 +35,12 @@ def process_dataset(dataset):
         mnist.process()
 
     elif dataset == 'PSD_Nonsegmented':
-        psd.process('Nonsegmented')
+        # psd.process('Nonsegmented')
+        psd.process()
 
     elif dataset == 'PSD_Segmented':
-        psd.process('Segmented')
+        # psd.process('Segmented')
+        psd.process()
 
     elif dataset == 'custom_jpeg':
         custom_jpeg.process('')
