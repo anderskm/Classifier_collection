@@ -52,6 +52,36 @@ def str2bool(v):
     else:
         raise argparse.ArgumentTypeError('Boolean value expected.')
 
+def dataset_parser_group(parser):
+    parser_group_dataset = parser.add_argument_group('Dataset options')
+    parser_group_dataset.add_argument('--shuffle_before_split',
+                                        type=str2bool, default='True',
+                                        help='Shuffle all examples before splitting dataset into training, validation and test.')
+    parser_group_dataset.add_argument('--shuffle_seed',
+                                        type=int,default=1337,
+                                        help='Set the random seed using in the random shuffle (if shuffle_before_split is True).')
+    parser_group_dataset.add_argument('--group_before_split',
+                                        type=str2bool, default='True',
+                                        help='Group examples according to grouping function before splitting dataset into training, validation and test.')
+    parser_group_dataset.add_argument('--stratify_training_set',
+                                        type=str2bool, default='False',
+                                        help='Stratify the training set by copying examples to make class distributions approximately equal (within a factor of 0.5 to 1.5 of the most represented class).')
+    parser_group_dataset.add_argument('--validation_method',
+                                        type=str, default='none',
+                                        choices=['none',
+                                                'holdout',
+                                                'shards'],
+                                        help='Select validation method used for splitting dataset into training, validation and test. Choices: {%(choices)s}. \'none\': use all examples for training. \'holdout\': split dataset into training, validation and test')
+    parser_group_dataset.add_argument('--holdout_split',
+                                        type=float, nargs=3, default=[0.8, 0.1, 0.1],
+                                        help='Relative fractions used when splitting dataset using validation_method == holdout. Must be 3 numbers ({%(type)s}) separated by spaces. E.g. --holdout_split 0.8 0.1 0.1 . Default: %(default)s')
+    parser_group_dataset.add_argument('--shard_val',
+                                        type=int, default=None,
+                                        help='Index of shard to use for validation set, when validation_method == shards. Default: %(default)s')
+    parser_group_dataset.add_argument('--shard_test',
+                                        type=int, default=0,
+                                        help='Index of shard to use for test set, when validation_method == shards. Default: %(default)s')
+    return parser_group_dataset
 
 def hparams_parser_train(hparams_string):
     parser = argparse.ArgumentParser()
@@ -89,35 +119,10 @@ def hparams_parser_train(hparams_string):
                                                 'non_restored'],
                                         help='Specify, which variables to optimize.')
 
-                        # shuffle_before_split=True, shuffle_seed=1337, group_before_split=False, validation_method='none', holdout_split=[0.8, 0.1, 0.1], cross_folds=10, cross_val_folds=[], cross_test_folds=[0], stratify_training_set = True):
-    parser_group_dataset = parser.add_argument_group('Dataset options')
-    parser_group_dataset.add_argument('--shuffle_before_split',
-                                        type=str2bool, default='True',
-                                        help='Shuffle all examples before splitting dataset into training, validation and test.')
-    parser_group_dataset.add_argument('--shuffle_seed',
-                                        type=int,default=1337,
-                                        help='Set the random seed using in the random shuffle (if shuffle_before_split is True).')
-    parser_group_dataset.add_argument('--group_before_split',
-                                        type=str2bool, default='True',
-                                        help='Group examples according to grouping function before splitting dataset into training, validation and test.')
-    parser_group_dataset.add_argument('--stratify_training_set',
-                                        type=str2bool, default='False',
-                                        help='Stratify the training set by copying examples to make class distributions approximately equal (within a factor of 0.5 to 1.5 of the most represented class).')
-    parser_group_dataset.add_argument('--validation_method',
-                                        type=str, default='none',
-                                        choices=['none',
-                                                'holdout',
-                                                'shards'],
-                                        help='Select validation method used for splitting dataset into training, validation and test. Choices: {%(choices)s}. \'none\': use all examples for training. \'holdout\': split dataset into training, validation and test')
-    parser_group_dataset.add_argument('--holdout_split',
-                                        type=float, nargs=3, default=[0.8, 0.1, 0.1],
-                                        help='Relative fractions used when splitting dataset using validation_method == holdout. Must be 3 numbers ({%(type)s}) separated by spaces. E.g. --holdout_split 0.8 0.1 0.1 . Default: %(default)s')
-    parser_group_dataset.add_argument('--shard_val',
-                                        type=int, default=None,
-                                        help='Index of shard to use for validation set, when validation_method == shards. Default: %(default)s')
-    parser_group_dataset.add_argument('--shard_test',
-                                        type=int, default=0,
-                                        help='Index of shard to use for test set, when validation_method == shards. Default: %(default)s')
+    # Add dataset parameters
+    parser_group_dataset = dataset_parser_group(parser)
+
+
     ## add more model parameters to enable configuration from terminal
     
     return parser.parse_args(shlex.split(hparams_string))
@@ -130,6 +135,13 @@ def hparams_parser_evaluate(hparams_string):
                         type=int,
                         default=None, 
                         help='Epoch no to reload')
+
+    parser.add_argument('--batch_size', 
+                        type=int, default='10',
+                        help='Number of samples in each batch')
+
+    # Add dataset parameters
+    parser_group_dataset = dataset_parser_group(parser)
 
     ## add more model parameters to enable configuration from terminal
 
@@ -651,14 +663,106 @@ class ResNet(object):
                 
             
     
-    def evaluate(self, hparams_string):
+    def evaluate(self, hparams_string, preprocessing_params=''):
         """ Run prediction of the network
         Args:
     
         Returns:
         """
-        
         args_evaluate = hparams_parser_evaluate(hparams_string)
 
-        with tf.Session() as sess:
-            sess.run(tf.global_variables_initializer())
+
+        # Load dataset
+        if (self.dataset == 'PSD_Segmented'):
+            DS = DS_PSDs.Dataset()
+        elif (self.dataset == 'seeds_all'):
+            DS = DS_Seeds.Dataset()
+        elif (self.dataset == 'barley_d0'):
+            DS = DS_Seeds_D0.Dataset()
+        elif (self.dataset == 'barley_next'):
+            DS = DS_Barley_Next.Dataset()
+        elif (self.dataset == 'barley_next_stratified'):
+            DS = DS_Barley_Next_Stratified.Dataset()
+        tf_dataset_list, dataset_sizes = DS.get_dataset_list(shuffle_before_split=args_evaluate.shuffle_before_split,
+                                                            shuffle_seed=args_evaluate.shuffle_seed,
+                                                            group_before_split=args_evaluate.group_before_split,
+                                                            validation_method=args_evaluate.validation_method,
+                                                            holdout_split=args_evaluate.holdout_split,
+                                                            cross_folds=10,
+                                                            cross_val_fold=None,
+                                                            cross_test_fold=0,
+                                                            shard_val=args_evaluate.shard_val,
+                                                            shard_test=args_evaluate.shard_test,
+                                                            stratify_training_set=args_evaluate.stratify_training_set)
+
+        class_dicts = DS.get_class_dicts()
+        num_classes = [len(class_dict) for class_dict in class_dicts]
+
+        preprocessing = preprocess_factory.preprocess_factory()
+        if not (preprocessing_params == ''):
+            # Setup preprocessing pipeline
+            preprocessing.prep_pipe_from_string(preprocessing_params)
+
+        with tf.name_scope('Test_dataset'):
+            tf_dataset_test = tf_dataset_list[2]
+            if (tf_dataset_test is not None):
+                tf_dataset_test = tf_dataset_test.map(DS._decode_from_TFexample)
+                tf_dataset_test = tf_dataset_test.map(preprocessing.pipe)
+                tf_dataset_test = tf_dataset_test.batch(batch_size = args_evaluate.batch_size, drop_remainder=False)
+                tf_dataset_test = tf_dataset_test.prefetch(buffer_size=3)
+                tf_dataset_test_iterator = tf_dataset_test.make_one_shot_iterator()
+                tf_input_getBatch_test = tf_dataset_test_iterator.get_next()
+
+        CMatsTest = [CM.confusionmatrix(N_classes) for N_classes in num_classes]
+
+        with tf.Session() as tf_session:
+   
+            # Locate checkpoints and load the latest metagraph and checkpoint
+            ckpt = tf.train.get_checkpoint_state(self.dir_checkpoints)
+            saver = tf.train.import_meta_graph(ckpt.model_checkpoint_path + '.meta')
+            saver.restore(tf_session, tf.train.latest_checkpoint(self.dir_checkpoints))
+
+            # Grab input and output tensors
+            graph = tf.get_default_graph()
+            input_images = graph.get_tensor_by_name('input_images:0')
+            input_lbls = []
+            output_logits = []
+            for i, N_classes in enumerate(num_classes):
+                input_lbls.append(graph.get_tensor_by_name('input_lbls' + str(i) + ':0'))
+                output_logits.append(graph.get_tensor_by_name('resnet_v1_50/logits' + str(i) + '/BiasAdd:0'))
+                # output_logits.append(graph.get_tensor_by_name('logits' + str(i) + ':0'))
+
+            # Reset confusion matrices and accumulated loss
+            for CMat in CMatsTest:
+                CMat.Reset()
+            loss_acc = 0
+            # Loop through all batches of examples
+            for batchCounter in range(math.ceil(float(dataset_sizes[2])/float(args_evaluate.batch_size))):
+                # Grab an image and label batch from the validation set
+                image_batch, lbl_batch, *args = tf_session.run(tf_input_getBatch_test)
+                # Built feed dict based on list of labels
+                # feed_dict = {input_lbl: np.expand_dims(lbl_batch[:,i],1) for i,input_lbl in enumerate(input_lbls)}
+                # feed_dict.update({input_images:    image_batch})
+                feed_dict = {input_images:    image_batch}
+                # Perform evaluation step
+                lbl_batch_predict = tf_session.run([output_logits],
+                                                    feed_dict=feed_dict
+                                                )
+                # Store results from evaluation step
+                # Calculate confusion matrix for all outputs
+                for i,CMat in enumerate(CMatsTest):
+                    lbl_idx = lbl_batch[:,i]
+                    lbl_idx_predict = np.squeeze(np.argmax(lbl_batch_predict[i][0], axis=3))
+                    CMat.Append(lbl_idx,lbl_idx_predict)
+                # Show progress in stdout
+                self._show_progress('TE', 0, batchCounter, math.ceil(float(dataset_sizes[2])/float(args_evaluate.batch_size))-1, np.nan, CMatsTest)
+            
+            # Print confusion matrix for each output
+            print('\n')
+            for i, CMat in enumerate(CMatsTest):
+                CMat.Save(os.path.join(self.dir_results, 'ConfMat_Test_output' + '{:02d}'.format(i) + '.csv'),'csv') # Save confusion matrix
+                print(CMat)
+            
+        
+
+        
