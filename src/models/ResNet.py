@@ -26,14 +26,14 @@ import src.utils as utils
 import src.preprocess_factory as preprocess_factory
 import src.tf_custom_summaries as tf_custom_summaries
 import src.data.util_data as util_data
-import src.data.datasets.psd as psd_dataset
-import src.data.datasets.seeds as seeds_dataset
+# import src.data.datasets.psd as psd_dataset
+# import src.data.datasets.seeds as seeds_dataset
 
 import src.data.datasets.DS_PSDs_no_grass as DS_PSDs
-import src.data.datasets.DS_Seeds_abnormal as DS_Seeds
-import src.data.datasets.DS_Seeds_D0 as DS_Seeds_D0
-import src.data.datasets.DS_Barley_Next as DS_Barley_Next
-import src.data.datasets.DS_Barley_Next_Stratified as DS_Barley_Next_Stratified
+# import src.data.datasets.DS_Seeds_abnormal as DS_Seeds
+# import src.data.datasets.DS_Seeds_D0 as DS_Seeds_D0
+# import src.data.datasets.DS_Barley_Next as DS_Barley_Next
+# import src.data.datasets.DS_Barley_Next_Stratified as DS_Barley_Next_Stratified
 
 import src.models.resnet_utils as resnet_utils
 import src.models.resnet_v1 as resnet_v1
