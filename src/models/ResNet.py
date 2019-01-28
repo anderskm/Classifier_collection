@@ -362,7 +362,7 @@ class ResNet(object):
     def _show_progress(self, tag, epoch, batch_counter, batch_max, loss, CMats):
         # print('T' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' Loss: ' + '{:>7.3g}'.format(loss_out) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsTrain]))
         output_string = tag + '{:d}'.format(epoch) + ' ' + '{:>4d}'.format(batch_counter) + '/' + '{:>4d}'.format(batch_max)  + ' Loss: ' + '{:>7.3g}'.format(loss) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMats])
-        sys.stdout.write('\routput_string)
+        sys.stdout.write('\r'+output_string)
         sys.stdout.flush()
         
     def train(self, hparams_string, preprocessing_params=''):
