@@ -14,16 +14,18 @@ def make_dataset(dataset):
     utils.checkfolder(dir_rawData)
 
     if dataset == 'MNIST':
-        mnist.download()
+        # mnist.download()
+        pass
 
     elif dataset == 'PSD_Nonsegmented': 
-        psd.download('Nonsegmented')
+        psd.Dataset().download()
 
     elif dataset == 'PSD_Segmented':
-        psd.download('Segmented')
+        psd.Dataset().download()
 
     elif dataset == 'custom_jpeg':
-        custom_jpeg.download()
+        # custom_jpeg.download()
+        pass
     else:
         raise ValueError('Unknown dataset! ' + dataset)
 
@@ -32,18 +34,20 @@ def process_dataset(dataset):
     utils.checkfolder(dir_processedData)
 
     if dataset == 'MNIST':
-        mnist.process()
+        # mnist.process()
+        pass
 
     elif dataset == 'PSD_Nonsegmented':
         # psd.process('Nonsegmented')
-        psd.process()
+        psd.Dataset().process()
 
     elif dataset == 'PSD_Segmented':
         # psd.process('Segmented')
-        psd.process()
+        psd.Dataset().process()
 
     elif dataset == 'custom_jpeg':
-        custom_jpeg.process('')
+        # custom_jpeg.process('')
+        pass
 
     else:
         raise ValueError('Unknown dataset: ' + dataset)
