@@ -6,6 +6,7 @@ Created on Tue Oct 10 16:43:52 2017
 @author: leminen
 """
 import os
+import sys
 import tensorflow as tf
 import matplotlib.pyplot as plt
 import argparse
@@ -357,7 +358,12 @@ class ResNet(object):
             tf.summary.scalar(tf_placeholder.name, tf_placeholder)
 
         return
-        
+
+    def _show_progress(self, tag, epoch, batch_counter, batch_max, loss, CMats):
+        # print('T' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' Loss: ' + '{:>7.3g}'.format(loss_out) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsTrain]))
+        output_string = tag + '{:d}'.format(epoch) + ' ' + '{:>4d}'.format(batch_counter) + '/' + '{:>4d}'.format(batch_max)  + ' Loss: ' + '{:>7.3g}'.format(loss) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMats])
+        sys.stdout.write('\routput_string)
+        sys.stdout.flush()
         
     def train(self, hparams_string, preprocessing_params=''):
         """ Run training of the network
@@ -597,6 +603,7 @@ class ResNet(object):
 
                     # TODO: overwrite previous output. stdout.flush?
                     # print('T' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' Loss: ' + '{:>7.3g}'.format(loss_out) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsTrain]))
+                    self._show_progress('T', epoch_n, batchCounter, math.ceil(float(dataset_sizes[0])/float(self.batch_size)), loss_out, CMatsTrain)
                         
                     # except tf.errors.OutOfRangeError:
 
