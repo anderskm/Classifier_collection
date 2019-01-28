@@ -594,7 +594,9 @@ class ResNet(object):
 
                     # print('T' + str(epoch_n) + ' ' + str(batchCounter)  + ' ' + str(lbl_idx) + ' ' + str(lbl_idx_predict) + ' ' + str(loss_out))
                     # print('T' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' ' + '{:>9.3f}'.format(loss_out) + ' ' + ' '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsTrain]))
-                    print('T' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' Loss: ' + '{:>7.3g}'.format(loss_out) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsTrain]))
+
+                    # TODO: overwrite previous output. stdout.flush?
+                    # print('T' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' Loss: ' + '{:>7.3g}'.format(loss_out) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsTrain]))
                         
                     # except tf.errors.OutOfRangeError:
 
@@ -676,7 +678,9 @@ class ResNet(object):
                         # print('V' + str(epoch_n) + ' ' + str(batchCounter)  + ' ' + str(lbl_idx) + ' ' + str(lbl_idx_predict) + ' ' + str(loss_out))
 
                         # print('V' + str(epoch_n) + ' ' + str(batchCounter)  + ' ' + str(loss_out) + ' '.join([str(CMat.accuracy()) for CMat in CMatsVal]))
-                        print('V' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' Loss: ' + '{:>7.3g}'.format(loss_out) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsVal]))
+
+                        # TODO: overwrite previous output. stdout.flush?
+                        # print('V' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' Loss: ' + '{:>7.3g}'.format(loss_out) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsVal]))
                             
                         # except tf.errors.OutOfRangeError:
                     for i, CMat in enumerate(CMatsVal):
