@@ -425,28 +425,25 @@ class ResNet(object):
             tf_dataset_train = tf_dataset_list[0]
             tf_dataset_train = tf_dataset_train.shuffle(buffer_size = 10000, seed = None)
             tf_dataset_train = tf_dataset_train.map(DS._decode_from_TFexample)
-            # tf_dataset_train = tf_dataset_train.map(self._preProcessData)        # potential local preprocessing of data
             tf_dataset_train = tf_dataset_train.map(preprocessing.pipe)
             tf_dataset_train = tf_dataset_train.batch(batch_size = self.batch_size, drop_remainder=False)
             tf_dataset_train = tf_dataset_train.repeat(count=-1) # -1 --> repeat indefinitely
             tf_dataset_train = tf_dataset_train.prefetch(buffer_size=3)
             tf_dataset_train_iterator = tf_dataset_train.make_one_shot_iterator()
-            # tf_dataset_train_iterator = tf_dataset_train.make_initializable_iterator()
             input_getBatch = tf_dataset_train_iterator.get_next()
 
         with tf.name_scope('Validation_dataset'):
             tf_dataset_val = tf_dataset_list[1]
             if (tf_dataset_val is not None):
                 tf_dataset_val = tf_dataset_val.map(DS._decode_from_TFexample)
-                # tf_dataset_val = tf_dataset_val.map(self._preProcessData)        # potential local preprocessing of data
                 tf_dataset_val = tf_dataset_val.map(preprocessing.pipe)
                 tf_dataset_val = tf_dataset_val.batch(batch_size = self.batch_size, drop_remainder=False)
                 tf_dataset_val = tf_dataset_val.repeat(count=-1) # -1 --> repeat indefinitely
                 tf_dataset_val = tf_dataset_val.prefetch(buffer_size=3)
-                # tf_dataset_val_iterator = tf_dataset_val.make_initializable_iterator()
                 tf_dataset_val_iterator = tf_dataset_val.make_one_shot_iterator()
                 tf_input_getBatch_val = tf_dataset_val_iterator.get_next()
 
+        # Define input and output layers
         input_images = tf.placeholder(
             dtype = tf.float32, 
             shape = [None] + self.image_dims, 
@@ -473,8 +470,10 @@ class ResNet(object):
         else:
             model_vars_restored = []
             model_vars_not_restored = [value for key,value in endpoints.items()]
+        
         # Setup loss function
         loss = self._create_losses(output_logits, input_lbls, num_classes)
+
         # Setup optimizer
         variables_to_optimize = None
         if (optim_vars == 'all'):
@@ -489,16 +488,7 @@ class ResNet(object):
         # Setup summaries
         CMatsTrain = [CM.confusionmatrix(N_classes) for N_classes in num_classes]
         CMatsVal = [CM.confusionmatrix(N_classes) for N_classes in num_classes]
-
-        # CMatTrain = CM.confusionmatrix(self.lbls_dim)
-        # CMatVal   = CM.confusionmatrix(self.lbls_dim)
-        # Setup summary dict
-        # tf_accuracy = tf.placeholder(tf.float32, name='accuracy')
-        # tf_precision = tf.placeholder(tf.float32, name='precision')
-        # tf_recall = tf.placeholder(tf.float32, name='recall')
-        # tf_F1 = tf.placeholder(tf.float32, name='F1')
         tf_loss = tf.placeholder(tf.float32, name='loss_mean')
-
         tf_accuracies = []
         tf_recalls = []
         tf_precisions = []
@@ -555,26 +545,21 @@ class ResNet(object):
                 ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
                 epoch_start = int(ckpt_name.split('-')[-1])
             
-            interationCnt = 0
             # Do training loops
             for epoch_n in range(epoch_start, self.epoch_max):
-
-                # Initiate or Re-initiate iterator
-                # sess.run(tf_dataset_train_iterator.initializer)
                 
+                #################
+                # Training step #
+                #################
                 utils.show_message('Running training epoch no: {0}'.format(epoch_n), lvl=1)
-                # batchCounter = 0
-                
+                # Reset confusion matrices and accumulated loss
                 for CMat in CMatsTrain:
                     CMat.Reset()
-                # CMatTrain.Reset()
                 loss_train = 0
-                # while True:
-                    # try:
+                 # Loop through all batches of examples
                 for batchCounter in range(math.ceil(float(dataset_sizes[0])/float(self.batch_size))):
-                    interationCnt = interationCnt + 1
+                    # Grab an image and label batch from the validation set
                     image_batch, lbl_batch, *args = sess.run(input_getBatch)
-
                     # Built feed dict based on list of labels
                     feed_dict = {input_lbl: np.expand_dims(lbl_batch[:,i],1) for i,input_lbl in enumerate(input_lbls)}
                     feed_dict.update({input_images:    image_batch})
@@ -582,157 +567,85 @@ class ResNet(object):
                     _, loss_out, lbl_batch_predict = sess.run(
                         [optimizer_op, loss, output_logits],
                         feed_dict=feed_dict)
-                        # feed_dict={input_images:    image_batch,
-                                    # input_lbls:      lbl_batch})
                     loss_train += loss_out
-                    # counter =+ 1
-                    # batchCounter = batchCounter + 1
-                    
+                    # Store results from training step
                     # Calculate confusion matrix for all outputs
                     for i,CMat in enumerate(CMatsTrain):
-                        lbl_idx = lbl_batch[:,i] #np.squeeze(np.argmax(lbl_batch, axis=1))
+                        lbl_idx = lbl_batch[:,i]
                         lbl_idx_predict = np.squeeze(np.argmax(lbl_batch_predict[i], axis=3))
                         CMat.Append(lbl_idx,lbl_idx_predict)
-
-                    # lbl_idx = lbl_batch[:,0] #np.squeeze(np.argmax(lbl_batch, axis=1))
-                    # lbl_idx_predict = np.squeeze(np.argmax(lbl_batch_predict[0], axis=3))
-
-                    # CMatTrain.Append(lbl_idx,lbl_idx_predict)
-
-                    # print('T' + str(epoch_n) + ' ' + str(batchCounter)  + ' ' + str(lbl_idx) + ' ' + str(lbl_idx_predict) + ' ' + str(loss_out))
-                    # print('T' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' ' + '{:>9.3f}'.format(loss_out) + ' ' + ' '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsTrain]))
-
-                    # print('T' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' Loss: ' + '{:>7.3g}'.format(loss_out) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsTrain]))
+                    # Show progress in stdout
                     self._show_progress('TR', epoch_n, batchCounter, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, loss_out, CMatsTrain)
-                        
-                    # except tf.errors.OutOfRangeError:
-
-                print('\n')
 
                 # Print accumulated confusion matricx for each output
+                print('\n')
                 for i, CMat in enumerate(CMatsTrain):
                     CMat.Save(os.path.join(self.dir_logs, 'ConfMat_Train_output' + '{:02d}'.format(i) + '.csv'),'csv')
                     print(CMat)
-                    print(CMat.accuracy())
                 
-                # Extract training parameters and store in log-file
-                # accuracy = CMatTrain.accuracy()
-                # precision = [0 if np.isnan(x) else x for x in CMatTrain.precision()]
-                # recall = [0 if np.isnan(x) else x for x in CMatTrain.recall()]
-                # F1 = [0 if np.isnan(x) else x for x in CMatTrain.fScore(beta=1)]
-                loss_train = loss_train/batchCounter
-
+                # Create fill in summaries for training log
                 feed_dict_summary = {tf_acc: CMat.accuracy() for tf_acc, CMat in zip(tf_accuracies,CMatsTrain)}
-                # feed_dict_summary.update({tf_rec: np.mean([0 if np.isnan(x) else x for x in CMat.recall()]) for tf_rec, CMat in zip(tf_recalls,CMatsTrain)})
-                # feed_dict_summary.update({tf_pre: np.mean([0 if np.isnan(x) else x for x in CMat.precision()]) for tf_pre, CMat in zip(tf_precisions,CMatsTrain)})
-                # feed_dict_summary.update({tf_f1:  np.mean([0 if np.isnan(x) else x for x in CMat.fScore(beta=1)]) for tf_f1, CMat in zip(tf_F1s,CMatsTrain)})
                 feed_dict_summary.update({tf_rec: [0 if np.isnan(x) else x for x in CMat.recall()] for tf_rec, CMat in zip(tf_recalls,CMatsTrain)})
                 feed_dict_summary.update({tf_pre: [0 if np.isnan(x) else x for x in CMat.precision()] for tf_pre, CMat in zip(tf_precisions,CMatsTrain)})
                 feed_dict_summary.update({tf_f1:  [0 if np.isnan(x) else x for x in CMat.fScore(beta=1)] for tf_f1, CMat in zip(tf_F1s,CMatsTrain)})
-                # feed_dict_summary.update({tf_recall_test: [0 if np.isnan(x) else x for x in CMatsTrain[0].recall()]})
-                # feed_dict_summary.update({ tf_accuracy:    accuracy,
-                #                             tf_precision:   np.mean(precision),
-                #                             tf_recall:      np.mean(recall),
-                #                             tf_F1:          np.mean(F1)})
+                loss_train = loss_train/batchCounter
                 feed_dict_summary.update({tf_loss: loss_train})
-
                 summaries = sess.run(tf_summary_op, 
                                     feed_dict=feed_dict_summary)
+                # Write summaries to training log
                 writer_train.add_summary(summaries, global_step=epoch_n)
 
-                ########
-                # Validation
-                ########
-                if (tf_dataset_val is not None):
+                ###################
+                # Validation step #
+                ###################
+
+                if (tf_dataset_val is not None): # Skip validation step, if there is no validation dataset
                     utils.show_message('Running validation epoch no: {0}'.format(epoch_n),lvl=1)
-                    # Initiate or Re-initiate iterator
-                    # sess.run(tf_dataset_val_iterator.initializer)
-                    # batchCounter = 0
+                    # Reset confusion matrices and accumulated loss
                     for CMat in CMatsVal:
                         CMat.Reset()
                     loss_val = 0
+                    # Loop through all batches of examples
                     for batchCounter in range(math.ceil(float(dataset_sizes[1])/float(self.batch_size))):
-                    # while True:
-                        # try:
+                        # Grab an image and label batch from the validation set
                         image_batch, lbl_batch, *args = sess.run(tf_input_getBatch_val)
-
                         # Built feed dict based on list of labels
                         feed_dict = {input_lbl: np.expand_dims(lbl_batch[:,i],1) for i,input_lbl in enumerate(input_lbls)}
                         feed_dict.update({input_images:    image_batch})
-
                         # Perform evaluation step
                         lbl_batch_predict, loss_out = sess.run(
                                                             [output_logits, loss],
                                                             feed_dict=feed_dict
                                                         )
-
-                        # counter =+ 1
-                        # batchCounter = batchCounter + 1
-                        # lbl_idx = np.squeeze(np.argmax(lbl_batch, axis=1))
-                        # lbl_idx_predict = np.squeeze(np.argmax(lbl_batch_predict, axis=3))
-                        
+                        # Store results from evaluation step
                         # Calculate confusion matrix for all outputs
                         for i,CMat in enumerate(CMatsVal):
                             lbl_idx = lbl_batch[:,i] #np.squeeze(np.argmax(lbl_batch, axis=1))
                             lbl_idx_predict = np.squeeze(np.argmax(lbl_batch_predict[i], axis=3))
                             CMat.Append(lbl_idx,lbl_idx_predict)
-
-                        # lbl_idx = lbl_batch[:,0] #np.squeeze(np.argmax(lbl_batch, axis=1))
-                        # lbl_idx_predict = np.squeeze(np.argmax(lbl_batch_predict[0], axis=3))
-
                         loss_val += loss_out
-
-                        # CMatVal.Append(lbl_idx,lbl_idx_predict)
-
-                        # print('V' + str(epoch_n) + ' ' + str(batchCounter)  + ' ' + str(lbl_idx) + ' ' + str(lbl_idx_predict) + ' ' + str(loss_out))
-
-                        # print('V' + str(epoch_n) + ' ' + str(batchCounter)  + ' ' + str(loss_out) + ' '.join([str(CMat.accuracy()) for CMat in CMatsVal]))
-
-                        # print('V' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' Loss: ' + '{:>7.3g}'.format(loss_out) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsVal]))
+                        # Show progress in stdout
                         self._show_progress('VA', epoch_n, batchCounter, math.ceil(float(dataset_sizes[1])/float(self.batch_size))-1, loss_out, CMatsVal)
-                            
-                        # except tf.errors.OutOfRangeError:
+                    
+                    # Print confusion matrix for each output
                     print('\n')
                     for i, CMat in enumerate(CMatsVal):
-                        CMat.Save('ConfMat_Val_output' + '{:02d}'.format(i) + '.csv','csv')
-                        CMat.Save(os.path.join(self.dir_logs, 'ConfMat_Val_output' + '{:02d}'.format(i) + '.csv'),'csv')
+                        CMat.Save(os.path.join(self.dir_logs, 'ConfMat_Val_output' + '{:02d}'.format(i) + '.csv'),'csv') # Save confusion matrix
                         print(CMat)
-                        print(CMat.accuracy())
-                    # Do some evaluation after each Epoch
-                    # accuracy = CMatVal.accuracy()
-                    # precision = [0 if np.isnan(x) else x for x in CMatVal.precision()]
-                    # recall = [0 if np.isnan(x) else x for x in CMatVal.recall()]
-                    # F1 = [0 if np.isnan(x) else x for x in CMatVal.fScore(beta=1)]
-                    loss_val = loss_val/batchCounter
 
+                    # Create fill in summaries for validation log
                     feed_dict_summary = {tf_acc: CMat.accuracy() for tf_acc, CMat in zip(tf_accuracies,CMatsVal)}
-                    # feed_dict_summary.update({tf_rec: np.mean([0 if np.isnan(x) else x for x in CMat.recall()]) for tf_rec, CMat in zip(tf_recalls,CMatsVal)})
-                    # feed_dict_summary.update({tf_pre: np.mean([0 if np.isnan(x) else x for x in CMat.precision()]) for tf_pre, CMat in zip(tf_precisions,CMatsVal)})
-                    # feed_dict_summary.update({tf_f1:  np.mean([0 if np.isnan(x) else x for x in CMat.fScore(beta=1)]) for tf_f1, CMat in zip(tf_F1s,CMatsVal)})
                     feed_dict_summary.update({tf_rec: [0 if np.isnan(x) else x for x in CMat.recall()] for tf_rec, CMat in zip(tf_recalls,CMatsVal)})
                     feed_dict_summary.update({tf_pre: [0 if np.isnan(x) else x for x in CMat.precision()] for tf_pre, CMat in zip(tf_precisions,CMatsVal)})
                     feed_dict_summary.update({tf_f1:  [0 if np.isnan(x) else x for x in CMat.fScore(beta=1)] for tf_f1, CMat in zip(tf_F1s,CMatsVal)})
-                    # feed_dict_summary.update({tf_recall_test: [0 if np.isnan(x) else x for x in CMatsVal[0].recall()]})
-                    # feed_dict_summary.update({ tf_accuracy:    accuracy,
-                    #                             tf_precision:   np.mean(precision),
-                    #                             tf_recall:      np.mean(recall),
-                    #                             tf_F1:          np.mean(F1)})
+                    loss_val = loss_val/batchCounter
                     feed_dict_summary.update({tf_loss: loss_val})
-
                     summaries = sess.run(tf_summary_op, 
                                         feed_dict=feed_dict_summary)
-                                                    # { tf_accuracy:    accuracy,
-                                                    # tf_precision:   np.mean(precision),
-                                                    # tf_recall:      np.mean(recall),
-                                                    # tf_F1:          np.mean(F1),
-                                                    # tf_loss:        loss_val})
-                                                    # tf_accuracy:    np.asarray(np.reshape(accuracy,(1, 1, -1,1))*255,dtype=np.uint8),
-                                                    # tf_precision:   np.asarray(np.reshape(precision,(1, 1, -1,1))*255,dtype=np.uint8),
-                                                    # tf_recall:      np.asarray(np.reshape(recall,(1, 1, -1,1))*255,dtype=np.uint8),
-                                                    # tf_F1:          np.asarray(np.reshape(F1,(1, 1, -1,1))*255,dtype=np.uint8)})
+                    # Write summaries to validation log
                     writer_validation.add_summary(summaries, global_step=epoch_n)
-                            # break
                 
+                # Save checkpoint for this epoch
                 if epoch_n % 1 == 0:
                     saver.save(sess,os.path.join(self.dir_checkpoints, self.model + '.model'), global_step=epoch_n)
                 
@@ -749,52 +662,3 @@ class ResNet(object):
 
         with tf.Session() as sess:
             sess.run(tf.global_variables_initializer())
-    
-
-    # def _preProcessData(self, image_proto, lbl_proto, class_proto, height_proto, width_proto, channels_proto, origin_proto):
-    #     """ Local preprocessing of data from dataset
-    #     also used to select which elements to parse onto the model
-    #     Args:
-    #       all outputs of util_data.decode_image
-
-    #     Returns:
-    #     """
-
-        # Seeds only
-        # Perform random rotation
-        # rotations = tf.random.uniform([1,],minval=0,maxval=6.28)
-        # image_proto = tf.contrib.image.rotate(image_proto, angles=rotations)
-
-        # Perform resize to desired size
-        # image_proto = tf.image.resize_image_with_crop_or_pad(image_proto, target_height=self.image_dims[0], target_width=self.image_dims[1])
-
-        # One-hot encode labels
-        # lbl = tf.one_hot(lbl_proto, self.lbls_dim)
-
-        # PSD only
-        # pad_to_size()
-        # image_proto_shape = tf.shape(image_proto)
-        # image_height = tf.cond(tf.equal(tf.rank(image_proto),4),lambda: image_proto_shape[1], lambda: image_proto_shape[0])
-        # image_width = tf.cond(tf.equal(tf.rank(image_proto),4),lambda: image_proto_shape[2],lambda: image_proto_shape[1])
-        # image_proto = tf.image.pad_to_bounding_box(image_proto,
-        #                                             offset_height=tf.floordiv(400-image_height,2),
-        #                                             offset_width=tf.floordiv(400-image_width,2),
-        #                                             target_height=400,
-        #                                             target_width=400)
-
-        # preprocessing = self.preprocess_factory()
-
-        # params_pad = {'target_height': 400, 'target_width': 400}
-        # image_proto, lbl_proto, *_ = preprocessing.pad_to_size(params_pad, image_proto, lbl_proto, class_proto, height_proto, width_proto, channels_proto, origin_proto)
-
-        # params_rand_rot = {} # Leave empty to use default values
-        # image_proto, lbl_proto, *_ = preprocessing.random_rotation(params_rand_rot, image_proto, lbl_proto, class_proto, height_proto, width_proto, channels_proto, origin_proto)
-
-        # param_dict_resize = {'target_height': 128, 'target_width': 128}
-        # image_proto, lbl_proto, *_ = preprocessing.resize(param_dict_resize, image_proto, lbl_proto, class_proto, height_proto, width_proto, channels_proto, origin_proto)
-
-        # params = [(preprocessing.pad_to_size, params_pad), (preprocessing.random_rotation, params_rand_rot), (preprocessing.resize, param_dict_resize)]
-
-        # preprocessing.built_pipe(params, image_proto, lbl_proto, class_proto, height_proto, width_proto, channels_proto, origin_proto)
-
-        # return image_proto, lbl_proto, class_proto, height_proto, width_proto, channels_proto, origin_proto
