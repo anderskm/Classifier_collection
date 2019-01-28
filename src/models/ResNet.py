@@ -361,7 +361,8 @@ class ResNet(object):
 
     def _show_progress(self, tag, epoch, batch_counter, batch_max, loss, CMats):
         # print('T' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' Loss: ' + '{:>7.3g}'.format(loss_out) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsTrain]))
-        output_string = tag + '{:d}'.format(epoch) + ' ' + '{:>4d}'.format(batch_counter) + '/' + '{:>4d}'.format(batch_max)  + ' Loss: ' + '{:>7.3g}'.format(loss) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMats])
+        batch_counter_len = math.ceil(math.log10(batch_max))
+        output_string = tag + '{:d}'.format(epoch) + ' ' + '{:>d}'.format(batch_counter).rjust(batch_counter_len) + '/' + '{:>d}'.format(batch_max).rjust(batch_counter_len)  + ' Loss: ' + '{:>7.3g}'.format(loss) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMats])
         sys.stdout.write('\r'+output_string)
         sys.stdout.flush()
         
@@ -602,7 +603,7 @@ class ResNet(object):
                     # print('T' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' ' + '{:>9.3f}'.format(loss_out) + ' ' + ' '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsTrain]))
 
                     # print('T' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' Loss: ' + '{:>7.3g}'.format(loss_out) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsTrain]))
-                    self._show_progress('TR', epoch_n, batchCounter, math.ceil(float(dataset_sizes[0])/float(self.batch_size)), loss_out, CMatsTrain)
+                    self._show_progress('TR', epoch_n, batchCounter, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, loss_out, CMatsTrain)
                         
                     # except tf.errors.OutOfRangeError:
 
@@ -688,7 +689,7 @@ class ResNet(object):
                         # print('V' + str(epoch_n) + ' ' + str(batchCounter)  + ' ' + str(loss_out) + ' '.join([str(CMat.accuracy()) for CMat in CMatsVal]))
 
                         # print('V' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' Loss: ' + '{:>7.3g}'.format(loss_out) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsVal]))
-                        self._show_progress('VA', epoch_n, batchCounter, math.ceil(float(dataset_sizes[0])/float(self.batch_size)), loss_out, CMatsVal)
+                        self._show_progress('VA', epoch_n, batchCounter, math.ceil(float(dataset_sizes[1])/float(self.batch_size))-1, loss_out, CMatsVal)
                             
                         # except tf.errors.OutOfRangeError:
                     print('\n')
