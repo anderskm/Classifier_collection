@@ -226,8 +226,11 @@ class Dataset(object):
         list_of_filenames_and_classes = [list_of_filenames, list_of_corresponding_class_names]
         list_of_filenames_and_classes = list(map(list, zip(*list_of_filenames_and_classes))) # "Transpose" list of lists (from [[filenames],[classes]] to [[filename1, class1], ...])
 
-        # Shuffle list before sharding --> Assume, that classes are split (approximately) evenly across shards
+        # Shuffle list before sharding --> Assume, that classes are then split (approximately) evenly across shards
+        rand_state = random.getstate() # Store current state of random generator
+        random.seed(1337) # Set fixed seed before splitting dataset to ensure reproduceability
         random.shuffle(list_of_filenames_and_classes) # Shuffle is done in-place
+        random.setstate(rand_state) # Resote previous state of the random generator
 
         # Treat each class individually to spred them (approximately) equally across shards
         # for unique_class in list_of_unique_classes:
