@@ -34,7 +34,7 @@ class Dataset(superDataset.Dataset):
                     processFolder = 'data/processed/PSD',
                     numShards = 10,
                     data_url='https://vision.eng.au.dk/?download=/data/WeedData/Segmented.zip',
-                    raw_filename = 'PDS_segmented.zip'):
+                    raw_filename = 'PSD_segmented.zip'):
         super(Dataset, self).__init__(name = name, rawFolder = rawFolder, processFolder = processFolder, numShards = numShards)
 
         self._data_url = data_url

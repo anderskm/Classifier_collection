@@ -35,7 +35,7 @@ class Dataset(superDataset.Dataset):
                     processFolder='data/processed/PSD_no_grass',
                     numShards=10,
                     data_url='https://vision.eng.au.dk/?download=/data/WeedData/Segmented.zip',
-                    raw_filename='PDS_segmented.zip',
+                    raw_filename='PSD_segmented.zip',
                     class_exclude_list=['Black-grass','Common wheat','Loose Silky-bent'],
                     max_img_dims=[400, 400], # [height, width]
                     ):
