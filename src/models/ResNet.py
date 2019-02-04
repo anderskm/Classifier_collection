@@ -101,6 +101,9 @@ def hparams_parser_train(hparams_string):
                                  'ResNet152',
                                  'ResNet200'],
                         help='Choose VGG model configuration')
+    parser.add_argument('--global_pool',
+                        type=str2bool, default=True,
+                        help='Flag specifies if mean pooling should be performed before the last convolution layer of ResNet. Default: %(default)s')
 
     parser_group_pretrain = parser.add_argument_group('Pretraining options')
     parser_group_pretrain.add_argument('--pretrained_model',
@@ -257,7 +260,7 @@ class ResNet(object):
         return output_logits, model_vars_restored, model_vars_not_restored
         
        
-    def _create_inference(self, inputs, num_classes, is_training = True, dropout_keep_prob = 0.5):
+    def _create_inference(self, inputs, num_classes, is_training = True, global_pool=True, dropout_keep_prob = 0.5):
         """ Define the inference model for the network
         Args:
     
@@ -267,22 +270,22 @@ class ResNet(object):
         print('Model: ' + self.model_version)
 
         if self.model_version == 'ResNet50':
-            logits, endpoints = resnet_v1.resnet_v1_50(inputs, num_classes, is_training=is_training, global_pool=True, spatial_squeeze=False)
+            logits, endpoints = resnet_v1.resnet_v1_50(inputs, num_classes, is_training=is_training, global_pool=global_pool, spatial_squeeze=False)
             input_layer_name = ['resnet_v1_50/conv1']
             output_layer_names = [ep for ep in endpoints if ('logits' in ep)]
 
         elif self.model_version == 'ResNet101':
-            logits, endpoints = resnet_v1.resnet_v1_101(inputs, num_classes, is_training=is_training, spatial_squeeze=False)
+            logits, endpoints = resnet_v1.resnet_v1_101(inputs, num_classes, is_training=is_training, global_pool=global_pool, spatial_squeeze=False)
             input_layer_name = ['resnet_v1_101/conv1']
             output_layer_names = [ep for ep in endpoints if ('logits' in ep)]
         
         elif self.model_version == 'ResNet152':
-            logits, endpoints = resnet_v1.resnet_v1_152(inputs, num_classes, is_training=is_training, spatial_squeeze=False)
+            logits, endpoints = resnet_v1.resnet_v1_152(inputs, num_classes, is_training=is_training, global_pool=global_pool, spatial_squeeze=False)
             input_layer_name = ['resnet_v1_152/conv1']
             output_layer_names = [ep for ep in endpoints if ('logits' in ep)]
 
         elif self.model_version == 'ResNet200':
-            logits, endpoints = resnet_v1.resnet_v1_200(inputs, num_classes, is_training=is_training, spatial_squeeze=False)
+            logits, endpoints = resnet_v1.resnet_v1_200(inputs, num_classes, is_training=is_training, global_pool=global_pool, spatial_squeeze=False)
             input_layer_name = ['resnet_v1_200/conv1']
             output_layer_names = [ep for ep in endpoints if ('logits' in ep)]
 
@@ -471,7 +474,7 @@ class ResNet(object):
                             )
 
         # define model model and load pre-trained model
-        output_logits, endpoints, input_layer_name, output_layer_names = self._create_inference(input_images, num_classes=num_classes)
+        output_logits, endpoints, input_layer_name, output_layer_names = self._create_inference(input_images, num_classes=num_classes, global_pool=args_train.global_pool)
         if (use_pretrained_model):
             exclude_layers = []
             if (pretrain_exclude_input):
