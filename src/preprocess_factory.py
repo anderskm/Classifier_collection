@@ -92,9 +92,16 @@ class preprocess_factory(object):
         
         min_angle = param_dict.get('min_angle', 0)
         max_angle = param_dict.get('max_angle', 6.28318530718)
+        interp_method_string = param_dict.get('interp_method','bilinear')
+        if (interp_method_string == 'bilinear'):
+            interp_method = 'BILINEAR'
+        elif (interp_method_string == 'nearest'):
+            interp_method = 'NEAREST'
+        else:
+            raise ValueError('Unknown interpolation method (' + interp_method + '). Expected on of the following \'bilinear\' (default) or \'nearest\'')
         with tf.name_scope('random_rotation_'+ '{:5.3f}'.format(min_angle) + '_' + '{:5.3f}'.format(max_angle) + ''):
             rotations = tf.random.uniform([1,],minval=min_angle,maxval=max_angle)
-            tf_image = tf.contrib.image.rotate(tf_image, angles=rotations)
+            tf_image = tf.contrib.image.rotate(tf_image, angles=rotations, interpolation=interp_method)
 
         return (tf_image, tf_label, *args)
 
