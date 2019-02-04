@@ -162,7 +162,7 @@ class Dataset(object):
 
         encoded_image = parsed_example['image/encoded']
         image_format = parsed_example['image/format']
-        class_lbl = tf.sparse_tensor_to_dense(parsed_example['image/class/label'], default_value=-1)
+        class_lbl = tf.sparse.to_dense(parsed_example['image/class/label'], default_value=-1)
         class_text = parsed_example['image/class/text']
         height = parsed_example['image/height']
         width = parsed_example['image/width']
@@ -494,7 +494,7 @@ class Dataset(object):
         
         features = {'image/class/label': tf.VarLenFeature(tf.int64)}
         parsed_example = tf.parse_single_example(example_proto, features)
-        class_lbl = tf.sparse_tensor_to_dense(parsed_example['image/class/label'], default_value=-1)
+        class_lbl = tf.sparse.to_dense(parsed_example['image/class/label'], default_value=-1)
 
         key = tf.argmax(tf.cast(tf.reduce_all(tf.equal(tf.cast(class_combinations,tf.int64), class_lbl),axis=1), tf.int64), axis=0) #tf.argmax(tf.cast(tf.equal(tf.cast(class_combinations,tf.int64), class_lbl), tf.int64), axis=1)        
 
