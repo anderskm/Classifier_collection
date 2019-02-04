@@ -729,8 +729,11 @@ class ResNet(object):
             output_logits = []
             for i, N_classes in enumerate(num_classes):
                 input_lbls.append(graph.get_tensor_by_name('input_lbls' + str(i) + ':0'))
-                output_logits.append(graph.get_tensor_by_name('resnet_v1_50/logits' + str(i) + '/BiasAdd:0'))
+                output_logits.append(graph.get_tensor_by_name('resnet_v1_101/logits' + str(i) + '/BiasAdd:0'))
                 # output_logits.append(graph.get_tensor_by_name('logits' + str(i) + ':0'))
+
+            # results_list_file = os.path.join(self.dir_results, 'results_list.csv')
+            # fob_results_list = open(results_list_file,'w')
 
             # Reset confusion matrices and accumulated loss
             for CMat in CMatsTest:
