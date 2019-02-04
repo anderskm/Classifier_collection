@@ -53,8 +53,8 @@ class preprocess_factory(object):
 
         with tf.name_scope('pad_to_size_' + '{:d}'.format(target_height) + '_' + '{:d}'.format(target_width)):
             tf_image_shape = tf.shape(tf_image)
-            image_height = tf.cond(tf.equal(tf.rank(tf_image),4),lambda: tf_image_shape[1], lambda: tf_image_shape[0])
-            image_width = tf.cond(tf.equal(tf.rank(tf_image),4),lambda: tf_image_shape[2],lambda: tf_image_shape[1])
+            image_height = tf.cond(tf.equal(tf.rank(tf_image),4),lambda: tf_image_shape[1], lambda: tf_image_shape[0], name='image_height')
+            image_width = tf.cond(tf.equal(tf.rank(tf_image),4),lambda: tf_image_shape[2],lambda: tf_image_shape[1], name='image_width')
             tf_image = tf.image.pad_to_bounding_box(tf_image,
                                                         offset_height=tf.floordiv(target_height-image_height,2),
                                                         offset_width=tf.floordiv(target_width-image_width,2),
