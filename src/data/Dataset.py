@@ -283,8 +283,10 @@ class Dataset(object):
     def get_dataset_list(self, tf_session=None, shuffle_before_split=True, shuffle_seed=1337, group_before_split=False, validation_method='none', holdout_split=[0.8, 0.1, 0.1], cross_folds=10, cross_val_fold=None, cross_test_fold=0, shard_val=None, shard_test=0, stratify_training_set = True):
         # Return af list of the datasets split according to the chosen validation method. E.g. [train, val, test] for holdout
 
+        close_session = False
         if (tf_session is None):
             tf_session = tf.Session('')
+            close_session = True
 
         # TODO: Expose following variables to user
         # shuffle_before_split = True
@@ -497,6 +499,9 @@ class Dataset(object):
                 # Update dataset sizes
                 dataset_sizes = [self._get_num_examples(_tf_dataset, tf_session) for _tf_dataset in tf_dataset_list]
 
+        if (close_session):
+            tf_session.close()
+
         return tf_dataset_list, dataset_sizes
         
     def _class_combination_to_key(self, example_proto, class_combinations):
@@ -547,8 +552,10 @@ class Dataset(object):
         if (tf_dataset is None):
             example_counter = 0
         else:
+            close_session = False
             if (tf_session is None):
                 tf_session = tf.Session('')
+                close_session = True
             
             tf_dataset_count = tf_dataset.batch(1)
             tf_dataset_count_iterator = tf_dataset_count.make_initializable_iterator()
@@ -562,6 +569,8 @@ class Dataset(object):
                 except tf.errors.OutOfRangeError:
                     # Do some evaluation after each Epoch
                     break
+            if (close_session):
+                tf_session.close()
 
         return example_counter
 
@@ -610,6 +619,7 @@ class Dataset(object):
         @classmethod
         def tearDownClass(cls):
             cls.dataset._process_cleanup(cls.dataset.processFolder)
+            cls.tf_session.close()
 
         def test_get_filenames_and_classes(self):
             DS = self.dataset
@@ -709,6 +719,7 @@ class Dataset(object):
         @classmethod
         def tearDownClass(cls):
             cls.dataset._process_cleanup(cls.dataset.processFolder)
+            cls.tf_session.close()
 
         def test_encode_decode_all_examples(self, tf_session=None):
             DS = self.dataset
