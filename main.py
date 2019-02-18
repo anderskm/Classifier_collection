@@ -79,9 +79,14 @@ def parse_args():
                                  'PSD_Segmented',
                                  'custom_jpeg',
                                  'seeds_all',
+                                 'barley',
+                                 'barley_abnormal',
                                  'barley_d0',
                                  'barley_next',
-                                 'barley_next_stratified'],
+                                 'okra',
+                                 'okra_abnormal',
+                                 'okra_next',
+                                 'okra_d0'],
                         #required = True,
                         help='The name of dataset')  
     
