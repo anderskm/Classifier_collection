@@ -4,7 +4,18 @@ import tensorflow as tf
 
 
 class preprocess_factory(object):
-    #TODO: Move to separat file
+    # TODO Pre-processing factory
+    # Normalize:
+    # - Subtract mean
+    # - divide by standard deviation
+    # -- Fixed, from batch, from image
+    # Random crop
+    # - specify boundaries
+    # Random scale
+    # - scale by 0.9 to 1.1 (default)
+    # Random flip
+    # - Horizontal
+    # - vertical
 
     def __init__(self):
         self._pipe_params = [(self.nop,{})]
@@ -136,5 +147,38 @@ class preprocess_factory(object):
                                             size=[height, width],
                                             method=resize_method
                                             )
+
+        return (tf_image, tf_label, *args)
+
+    def scale_values(self, param_dict, tf_image, tf_label, *args):
+        # Scale image values from between [min_in;max_in] to [min_out;max_out]
+        #
+        #   param_dict      dict with the following key-value pairs:
+        #                       'min_in': minimum value of input
+        #                       'max_in': maximum value of input
+        #                       'min_out': minimum value of output
+        #                       'max_out': maximum value of output
+        #                       'truncate': truncate values outside [min_in;max_in] to min_in or max_in before scaling. Default = True.
+
+        min_in = param_dict['min_in']
+        max_in = param_dict['max_in']
+        min_out = param_dict['min_out']
+        max_out = param_dict['max_out']
+        truncate = param_dict.get('truncate', True)
+
+        with tf.name_scope('scale_values_' + '{:.3f}'.format(min_in) + '_' + '{:.3f}'.format(max_in) + '_' + '{:.3f}'.format(min_out) + '_' + '{:.3f}'.format(max_out)):
+            tf_image = tf.to_float(tf_image)
+
+            # Truncate values
+            if (truncate):
+                tf_image = tf.math.minimum(tf_image,max_in)
+                tf_image = tf.math.maximum(tf_image,min_in)
+            
+            # Scale to range [0,1]
+            tf_image = (tf_image - min_in)/(max_in - min_in)
+            # Scale to range [min_out, max_out]
+            tf_image = tf_image*(max_out - min_out) + min_out
+
+            #TODO: Convert tf_image back to original dtype?
 
         return (tf_image, tf_label, *args)
