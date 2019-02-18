@@ -17,6 +17,10 @@ class Dataset(object):
     num_examples = None
 
     def _process_setup(self, rawFolder, processFolder):
+        # Create processFolder directory
+        if not os.path.exists(processFolder):
+            os.makedirs(processFolder)
+        
         # Use for e.g. unzipping images or copying them to process folder temporarily
         return
 
