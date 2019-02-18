@@ -31,7 +31,15 @@ import src.data.util_data as util_data
 # import src.data.datasets.seeds as seeds_dataset
 
 import src.data.datasets.DS_PSDs_no_grass as DS_PSDs
-# import src.data.datasets.DS_Seeds_abnormal as DS_Seeds
+import src.data.datasets.DS_Seeds_abnormal as DS_Seeds
+import src.data.datasets.DS_Okra as DS_Okra
+import src.data.datasets.DS_Okra_Abnormal as DS_Okra_Abnormal
+import src.data.datasets.DS_Okra_D0 as DS_Okra_D0
+import src.data.datasets.DS_Okra_Next as DS_Okra_next
+import src.data.datasets.DS_Barley as DS_Barley
+import src.data.datasets.DS_Barley_Abnormal as DS_Barley_Abnormal
+import src.data.datasets.DS_Barley_D0 as DS_Barley_D0
+import src.data.datasets.DS_Barley_Next as DS_Barley_Next
 # import src.data.datasets.DS_Seeds_D0 as DS_Seeds_D0
 # import src.data.datasets.DS_Barley_Next as DS_Barley_Next
 # import src.data.datasets.DS_Barley_Next_Stratified as DS_Barley_Next_Stratified
@@ -185,6 +193,16 @@ class ResNet(object):
             self.lbls_dim = 2
             self.image_dims = [256,256,19]
             self.fc_dims = [8,8] # 128/(2^5) = 4
+        elif dataset == 'barley':
+            # self.dateset_filenames = ['data/processed/seeds_all/PSD-data_{:03d}-of-{:03d}.tfrecord'.format(i+1,psd_dataset._NUM_SHARDS) for i in range(psd_dataset._NUM_SHARDS)]
+            self.lbls_dim = 2
+            self.image_dims = [256,256,19]
+            self.fc_dims = [8,8] # 128/(2^5) = 4
+        elif dataset == 'barley_abnormal':
+            # self.dateset_filenames = ['data/processed/seeds_all/PSD-data_{:03d}-of-{:03d}.tfrecord'.format(i+1,psd_dataset._NUM_SHARDS) for i in range(psd_dataset._NUM_SHARDS)]
+            self.lbls_dim = 2
+            self.image_dims = [256,256,19]
+            self.fc_dims = [8,8] # 128/(2^5) = 4
         elif dataset == 'barley_d0':
             # self.dateset_filenames = ['data/processed/seeds_all/PSD-data_{:03d}-of-{:03d}.tfrecord'.format(i+1,psd_dataset._NUM_SHARDS) for i in range(psd_dataset._NUM_SHARDS)]
             self.lbls_dim = 2
@@ -199,6 +217,22 @@ class ResNet(object):
             self.lbls_dim = 2
             self.image_dims = [256,256,19]
             self.fc_dims = [8,8] # 128/(2^5) = 4
+        elif dataset == 'okra':
+            self.lbls_dim = 2
+            self.image_dims = [256,256,19]
+            self.fc_dims = [8,8] # 128/(2^5) = 4
+        elif dataset == 'okra_abnormal':
+            self.lbls_dim = 2
+            self.image_dims = [256, 256, 19]
+            self.fc_dims = [8,8]
+        elif dataset == 'okra_next':
+            self.lbls_dim = 2
+            self.image_dims = [256, 256, 19]
+            self.fc_dims = [8,8]
+        elif dataset == 'okra_d0':
+            self.lbls_dim = 2
+            self.image_dims = [256, 256, 19]
+            self.fc_dims = [8,8]
         else:
             raise ValueError('Selected Dataset is not supported by model: ' + self.model)
 
@@ -410,12 +444,22 @@ class ResNet(object):
             DS = DS_PSDs.Dataset()
         elif (self.dataset == 'seeds_all'):
             DS = DS_Seeds.Dataset()
+        elif (self.dataset == 'barley'):
+            DS = DS_Barley.Dataset()
         elif (self.dataset == 'barley_d0'):
-            DS = DS_Seeds_D0.Dataset()
+            DS = DS_Barley_D0.Dataset()
         elif (self.dataset == 'barley_next'):
             DS = DS_Barley_Next.Dataset()
         elif (self.dataset == 'barley_next_stratified'):
             DS = DS_Barley_Next_Stratified.Dataset()
+        elif (self.dataset == 'okra'):
+            DS = DS_Okra.Dataset()
+        elif (self.dataset == 'okra_abnormal'):
+            DS = DS_Okra_Abnormal.Dataset()
+        elif (self.dataset == 'okra_next'):
+            DS = DS_Okra_next.Dataset()
+        elif (self.dataset == 'okra_d0'):
+            DS = DS_Okra_D0.Dataset()
         tf_dataset_list, dataset_sizes = DS.get_dataset_list(shuffle_before_split=args_train.shuffle_before_split,
                                                             shuffle_seed=args_train.shuffle_seed,
                                                             group_before_split=args_train.group_before_split,
