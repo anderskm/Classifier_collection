@@ -31,7 +31,7 @@ import src.data.util_data as util_data
 # import src.data.datasets.seeds as seeds_dataset
 
 import src.data.datasets.DS_PSDs_no_grass as DS_PSDs
-import src.data.datasets.DS_Seeds_abnormal as DS_Seeds
+# import src.data.datasets.DS_Seeds_abnormal as DS_Seeds
 import src.data.datasets.DS_Okra as DS_Okra
 import src.data.datasets.DS_Okra_Abnormal as DS_Okra_Abnormal
 import src.data.datasets.DS_Okra_D0 as DS_Okra_D0
