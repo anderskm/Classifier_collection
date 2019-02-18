@@ -351,6 +351,11 @@ class Dataset(object):
                                                                                     window_size=10000
                                                                                         )
                                                     )
+                ## Uncomment for testing
+                # tf_dataset_iterator = tf_dataset.make_one_shot_iterator()
+                # tf_input_getBatch = tf_dataset_iterator.get_next()
+                # for i in range(10):
+                #     this_batch = tf_session.run(tf_input_getBatch)
             
             if (shuffle_before_split):
                 # Sets the operation seed. See documentation for tf.random.set_random_seed (https://www.tensorflow.org/api_docs/python/tf/random/set_random_seed)
@@ -530,11 +535,12 @@ class Dataset(object):
 
         ageing_split = tf.string_split([splits.values[1]], '')
         ageing = tf.string_to_number(ageing_split.values[0], out_type=tf.int64)
-        repetition_split = tf.string_split([splits.values[2]], '')
+        primed = tf.cond(tf.equal(splits.values[2],'NP'), lambda: tf.to_int64(0), lambda: tf.to_int64(1))
+        repetition_split = tf.string_split([splits.values[3]], '')
         repetition = tf.string_to_number(repetition_split.values[1], out_type=tf.int64)
-        seed_id = tf.string_to_number(splits.values[4], out_type=tf.int64)
+        seed_id = tf.string_to_number(splits.values[5], out_type=tf.int64)
 
-        return example_proto, repetition*1000+ageing*100+seed_id
+        return example_proto, repetition*10000+primed*1000+ageing*100+seed_id
 
     @lru_cache(maxsize=128)
     def _get_num_examples(self, tf_dataset, tf_session):
