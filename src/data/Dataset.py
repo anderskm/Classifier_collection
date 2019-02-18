@@ -527,6 +527,9 @@ class Dataset(object):
         return example_proto, origin
 
     def _name_to_ID(self, example_proto, origin):
+        # TODO: Move to function to DS_Seeds. Function is too case specific
+        # TODO: Add generic name_to_ID using tf.string_to_hash_bucket_fast
+
         # Remove path from filename
         splits = tf.string_split([origin], "/")
         splits = tf.string_split([splits.values[-1]],"\\")
