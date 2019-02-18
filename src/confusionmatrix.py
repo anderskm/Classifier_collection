@@ -20,9 +20,33 @@ class confusionmatrix:
         self.confMat = np.zeros(shape=(numClasses,numClasses))
         
     def __str__(self):
-        # Create and return string for print()
-        # return np.array2string(self.confMat/self.trueCounts()[:,None], max_line_width=1000,precision=3, suppress_small=True)
-        return np.array2string(self.confMat, max_line_width=1000, precision=3, suppress_small=True)
+        numExamples = np.sum(self.confMat)
+        width = np.maximum(5, np.ceil(np.log10(numExamples)))
+
+        obs_str = ('Observed'+''.join([' ' for _ in range(10000)]))[0:self.numClasses]
+        # Predicted header
+        str_out = '  | ' + '{:{width}s}'.format('Predicted',width=int((1+width)*self.numClasses)) + '| \r\n'
+        # Line seperator
+        str_out += '--+' + ''.join(['-' for _ in range(int((1+width)*self.numClasses))]) + '-+-' + '-----' + '\r\n'
+        # Create confusion matrix str
+        recalls = self.recall()
+        precisions = self.precision()
+        # Loop through each row (observed class), and then column (predicted class)
+        for row, obs_char, recall in zip(self.confMat,obs_str,recalls):
+            str_out += obs_char + ' |'
+            for col in row:
+                str_out += ' {:>{width}d}'.format(int(col), width=int(width))
+            # Add class recall to end of row
+            str_out += ' | ' + '{:5.3f}'.format(recall) + '\r\n'
+        # Line seperator
+        str_out += '--+' + ''.join(['-' for _ in range(int((1+width)*self.numClasses))]) + '-+-' + '-----' + '\r\n'
+        # Precision at end of each column
+        str_out += '  |'
+        for precision in precisions:
+            str_out += ' ' + '{:>{width}.3f}'.format(precision, width=int(width))
+        # Accuracy
+        str_out += ' | ' + '{:5.3f}'.format(self.accuracy()) + '\r\n'
+        return str_out
     
     def Append(self, trueLabels, predictedLabels, useOldCode=False):
 
