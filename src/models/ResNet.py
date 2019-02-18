@@ -30,6 +30,7 @@ import src.data.util_data as util_data
 # import src.data.datasets.psd as psd_dataset
 # import src.data.datasets.seeds as seeds_dataset
 
+# TODO: Move datasets to main.py
 import src.data.datasets.DS_PSDs_no_grass as DS_PSDs
 # import src.data.datasets.DS_Seeds_abnormal as DS_Seeds
 import src.data.datasets.DS_Okra as DS_Okra
@@ -583,7 +584,7 @@ class ResNet(object):
         # utils.show_all_variables()
         
         gpu_options = tf.GPUOptions(allow_growth=1)
-        with tf.Session(gpu_options) as sess:
+        with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
             
             # Initialize all model Variables.
             sess.run(tf.global_variables_initializer())                
@@ -789,8 +790,8 @@ class ResNet(object):
             loss_acc = 0
             # Loop through all batches of examples
             for batchCounter in range(math.ceil(float(dataset_sizes[2])/float(args_evaluate.batch_size))):
-                # Grab an image and label batch from the validation set
-                image_batch, lbl_batch, *args = tf_session.run(tf_input_getBatch_test)
+                # Grab an image and label batch from the test set
+                image_batch, lbl_batch, class_text, height, width, channels, origin = tf_session.run(tf_input_getBatch_test)
                 # Built feed dict based on list of labels
                 # feed_dict = {input_lbl: np.expand_dims(lbl_batch[:,i],1) for i,input_lbl in enumerate(input_lbls)}
                 # feed_dict.update({input_images:    image_batch})
@@ -801,13 +802,21 @@ class ResNet(object):
                                                 )
                 # Store results from evaluation step
                 # Calculate confusion matrix for all outputs
+                # lbl_strings = ['' for x in CMatsTest]
                 for i,CMat in enumerate(CMatsTest):
                     lbl_idx = lbl_batch[:,i]
                     lbl_idx_predict = np.squeeze(np.argmax(lbl_batch_predict[i][0], axis=3))
                     CMat.Append(lbl_idx,lbl_idx_predict)
+                    # lbl_string[] += ','+str(lbl_idx)+','+str(lbl_idx_predict)
+                
+                # for o in origin:
+                #     out_string = o
+                #     for i in 
+                #     fob_results_list.write(origin + lbl_string)
+                
                 # Show progress in stdout
                 self._show_progress('TE', 0, batchCounter, math.ceil(float(dataset_sizes[2])/float(args_evaluate.batch_size))-1, np.nan, CMatsTest)
-            
+            # fob_results_list.close()
             # Print confusion matrix for each output
             print('\n')
             for i, CMat in enumerate(CMatsTest):
