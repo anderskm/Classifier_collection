@@ -129,6 +129,9 @@ def main():
     args = parse_args()
     if args is None:
         exit()
+
+    # Set tensorflow log level (0 = all, 1 >= no INFO, 2 >= no WARNING, 3 >= no ERROR)
+    os.environ['TF_CPP_MIN_LOG_LEVEL'] = '1' # or any {'0', '1', '2', '3'}
     
     # Make dataset
     if args.make_dataset:
