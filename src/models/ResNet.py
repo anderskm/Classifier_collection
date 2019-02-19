@@ -583,7 +583,7 @@ class ResNet(object):
         # show network architecture
         # utils.show_all_variables()
         
-        gpu_options = tf.GPUOptions(allow_growth=1)
+        gpu_options = tf.GPUOptions(allow_growth=True)
         with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
             
             # Initialize all model Variables.
