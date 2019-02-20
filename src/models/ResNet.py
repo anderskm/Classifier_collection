@@ -380,7 +380,8 @@ class ResNet(object):
         print('Tensors to optimize: ')
         print([T.name for T in model_vars_train])
 
-        optimizer = tf.train.AdamOptimizer()
+        # optimizer = tf.train.AdamOptimizer()
+        optimizer = tf.train.GradientDescentOptimizer(0.1)
         optimizer_op = optimizer.minimize(loss, var_list = model_vars_train)
 
         return optimizer_op
