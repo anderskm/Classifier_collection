@@ -8,6 +8,7 @@ Created on Tue Jan 24 12:49:29 2017
 
 import numpy as np
 import os
+import sys
 from sklearn.metrics import confusion_matrix
 
 class confusionmatrix:
@@ -244,3 +245,8 @@ class confusionmatrix:
         # Same as F1-score and has a close relationship to Jaccard index
         J = self.jaccardIndex()
         return np.divide(2*J,1+J)
+
+if (__name__ == '__main__'):
+    CMat = confusionmatrix(2)
+    CMat.Load(sys.argv[1])
+    print(CMat)
