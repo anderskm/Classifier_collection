@@ -448,6 +448,8 @@ class ResNet(object):
             DS = DS_Seeds.Dataset()
         elif (self.dataset == 'barley'):
             DS = DS_Barley.Dataset()
+        elif (self.dataset == 'barley_abnormal'):
+            DS = DS_Barley_Abnormal.Dataset()
         elif (self.dataset == 'barley_d0'):
             DS = DS_Barley_D0.Dataset()
         elif (self.dataset == 'barley_next'):
