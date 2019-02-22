@@ -500,6 +500,7 @@ class Dataset(object):
                 dataset_sizes = [self._get_num_examples(_tf_dataset, tf_session) for _tf_dataset in tf_dataset_list]
 
         if (close_session):
+            print('Closing tf session...')
             tf_session.close()
 
         return tf_dataset_list, dataset_sizes
@@ -573,6 +574,7 @@ class Dataset(object):
                     # Do some evaluation after each Epoch
                     break
             if (close_session):
+                print('Closing tf session...')
                 tf_session.close()
 
         return example_counter
