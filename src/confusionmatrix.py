@@ -153,6 +153,7 @@ class confusionmatrix:
             self.confMat = data['confMat']
         else:
             raise ValueError('Unknown file format.')
+        self.numClasses = self.confMat.shape[0]
         
     ## METRICS ##
     def count(self):
