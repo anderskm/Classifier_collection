@@ -393,9 +393,9 @@ class Dataset(object):
 
                 tf_dataset_list = [tf_dataset_train, tf_dataset_val, tf_dataset_test]
             elif (validation_method == 'shards'):
-                dataset_filenames_train = dataset_filenames
+                dataset_filenames_train = dataset_filenames.copy() # Make a an actual copy of the list and not just the reference to the list
                 # Set validation set
-                if (shard_val == None) or (shard_val < 0):
+                if (shard_val == None) or (len(shard_val) < 0):
                     tf_dataset_val = None
                 else:
                     dataset_filenames_val = dataset_filenames[shard_val]
@@ -404,14 +404,16 @@ class Dataset(object):
                     print(dataset_filenames_val)
                     dataset_filenames_train.remove(dataset_filenames_val)
                 # Set test set
-                if (shard_test == None) or (shard_test < 0):
+                if (shard_test == None) or (len(shard_test) < 0):
                     tf_dataset_test = None
                 else:
-                    dataset_filenames_test = dataset_filenames[shard_test]
-                    tf_dataset_test = tf.data.TFRecordDataset(dataset_filenames_test)
-                    print('Test shard:')
+                    dataset_filenames_test = []
+                    for this_shard_test in shard_test:
+                        dataset_filenames_test.append(dataset_filenames[this_shard_test])
+                        dataset_filenames_train.remove(dataset_filenames[this_shard_test])
+                    print('Test shard(s):')
                     print(dataset_filenames_test)
-                    dataset_filenames_train.remove(dataset_filenames_test)
+                    tf_dataset_test = tf.data.TFRecordDataset(dataset_filenames_test)
                 # Set training set
                 print('Training shard:')
                 print(dataset_filenames_train)

@@ -93,10 +93,10 @@ def dataset_parser_group(parser):
                                         type=float, nargs=3, default=[0.8, 0.1, 0.1],
                                         help='Relative fractions used when splitting dataset using validation_method == holdout. Must be 3 numbers ({%(type)s}) separated by spaces. E.g. --holdout_split 0.8 0.1 0.1 . Default: %(default)s')
     parser_group_dataset.add_argument('--shard_val',
-                                        type=int, default=None,
+                                        type=int, nargs='*', default=None,
                                         help='Index of shard to use for validation set, when validation_method == shards. Default: %(default)s')
     parser_group_dataset.add_argument('--shard_test',
-                                        type=int, default=0,
+                                        type=int, nargs='*', default=[0],
                                         help='Index of shard to use for test set, when validation_method == shards. Default: %(default)s')
     return parser_group_dataset
 
