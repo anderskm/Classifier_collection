@@ -63,6 +63,14 @@ def str2bool(v):
 
 def dataset_parser_group(parser):
     parser_group_dataset = parser.add_argument_group('Dataset options')
+    parser_group_dataset.add_argument('--data_source',
+                                        type=str, default='tfrecords',
+                                        choices=['tfrecords',
+                                                'folder'],
+                                        help='Specify data source. tfrecords or folder.')
+    parser_group_dataset.add_argument('--data_folder',
+                                        type=str, default='',
+                                        help='Specify folder where to read the images, when --data_source is set to folder')
     parser_group_dataset.add_argument('--shuffle_before_split',
                                         type=str2bool, default='True',
                                         help='Shuffle all examples before splitting dataset into training, validation and test.')
@@ -151,6 +159,9 @@ def hparams_parser_evaluate(hparams_string):
     parser.add_argument('--batch_size', 
                         type=int, default='10',
                         help='Number of samples in each batch')
+    parser.add_argument('--output_folder',
+                        type=str, default=None,
+                        help='Folder where results will be stored. Default: models/[models name]/results/')
 
     # Add dataset parameters
     parser_group_dataset = dataset_parser_group(parser)
@@ -465,7 +476,9 @@ class ResNet(object):
             DS = DS_Okra_next.Dataset()
         elif (self.dataset == 'okra_d0'):
             DS = DS_Okra_D0.Dataset()
-        tf_dataset_list, dataset_sizes = DS.get_dataset_list(shuffle_before_split=args_train.shuffle_before_split,
+        tf_dataset_list, dataset_sizes = DS.get_dataset_list(data_source = args_train.data_source,
+                                                            data_folder = args_train.data_folder,
+                                                            shuffle_before_split=args_train.shuffle_before_split,
                                                             shuffle_seed=args_train.shuffle_seed,
                                                             group_before_split=args_train.group_before_split,
                                                             validation_method=args_train.validation_method,
@@ -724,19 +737,37 @@ class ResNet(object):
         """
         args_evaluate = hparams_parser_evaluate(hparams_string)
 
+        output_folder = args_evaluate.output_folder
+        if (output_folder == None):
+            output_folder = self.dir_results
+        print('Output folder:' + output_folder)
 
         # Load dataset
         if (self.dataset == 'PSD_Segmented'):
             DS = DS_PSDs.Dataset()
         elif (self.dataset == 'seeds_all'):
             DS = DS_Seeds.Dataset()
+        elif (self.dataset == 'barley'):
+            DS = DS_Barley.Dataset()
+        elif (self.dataset == 'barley_abnormal'):
+            DS = DS_Barley_Abnormal.Dataset()
         elif (self.dataset == 'barley_d0'):
-            DS = DS_Seeds_D0.Dataset()
+            DS = DS_Barley_D0.Dataset()
         elif (self.dataset == 'barley_next'):
             DS = DS_Barley_Next.Dataset()
         elif (self.dataset == 'barley_next_stratified'):
             DS = DS_Barley_Next_Stratified.Dataset()
-        tf_dataset_list, dataset_sizes = DS.get_dataset_list(shuffle_before_split=args_evaluate.shuffle_before_split,
+        elif (self.dataset == 'okra'):
+            DS = DS_Okra.Dataset()
+        elif (self.dataset == 'okra_abnormal'):
+            DS = DS_Okra_Abnormal.Dataset()
+        elif (self.dataset == 'okra_next'):
+            DS = DS_Okra_next.Dataset()
+        elif (self.dataset == 'okra_d0'):
+            DS = DS_Okra_D0.Dataset()
+        tf_dataset_list, dataset_sizes = DS.get_dataset_list(data_source = args_evaluate.data_source,
+                                                            data_folder = args_evaluate.data_folder,
+                                                            shuffle_before_split=args_evaluate.shuffle_before_split,
                                                             shuffle_seed=args_evaluate.shuffle_seed,
                                                             group_before_split=args_evaluate.group_before_split,
                                                             validation_method=args_evaluate.validation_method,
@@ -763,6 +794,7 @@ class ResNet(object):
                 tf_dataset_test = tf_dataset_test.map(preprocessing.pipe)
                 tf_dataset_test = tf_dataset_test.batch(batch_size = args_evaluate.batch_size, drop_remainder=False)
                 tf_dataset_test = tf_dataset_test.prefetch(buffer_size=3)
+                # tf_dataset_test_iterator = tf_dataset_test.make_initializable_iterator()
                 tf_dataset_test_iterator = tf_dataset_test.make_one_shot_iterator()
                 tf_input_getBatch_test = tf_dataset_test_iterator.get_next()
 
@@ -784,18 +816,28 @@ class ResNet(object):
                 input_lbls.append(graph.get_tensor_by_name('input_lbls' + str(i) + ':0'))
                 output_logits.append(graph.get_tensor_by_name('resnet_v1_101/logits' + str(i) + '/BiasAdd:0'))
                 # output_logits.append(graph.get_tensor_by_name('logits' + str(i) + ':0'))
-
-            # results_list_file = os.path.join(self.dir_results, 'results_list.csv')
-            # fob_results_list = open(results_list_file,'w')
+            
+            fob_results_list = []
+            for i, N_classes in enumerate(num_classes):
+                results_list_file = os.path.join(output_folder, self.model + '_Classifications_output' + '{:02d}'.format(i) + '.csv')
+                fob = open(results_list_file,'w+')
+                fob_results_list.append(fob)
+                # Write header
+                out_string = 'filename' + ',predict_idx' + ',' + ','.join(['logit_'+ '{:d}'.format(c) for c in range(N_classes)]) + '\n'
+                fob.write(out_string)
 
             # Reset confusion matrices and accumulated loss
             for CMat in CMatsTest:
                 CMat.Reset()
             loss_acc = 0
+
+            # tf_session.run(tf_dataset_test_iterator.initializer)
+
             # Loop through all batches of examples
             for batchCounter in range(math.ceil(float(dataset_sizes[2])/float(args_evaluate.batch_size))):
+            # while 1:
                 # Grab an image and label batch from the test set
-                image_batch, lbl_batch, class_text, height, width, channels, origin = tf_session.run(tf_input_getBatch_test)
+                image_batch, lbl_batch, class_text, height, width, channels, origins = tf_session.run(tf_input_getBatch_test)
                 # Built feed dict based on list of labels
                 # feed_dict = {input_lbl: np.expand_dims(lbl_batch[:,i],1) for i,input_lbl in enumerate(input_lbls)}
                 # feed_dict.update({input_images:    image_batch})
@@ -813,20 +855,26 @@ class ResNet(object):
                     CMat.Append(lbl_idx,lbl_idx_predict)
                     # lbl_string[] += ','+str(lbl_idx)+','+str(lbl_idx_predict)
                 
-                # for o in origin:
-                #     out_string = o
-                #     for i in 
-                #     fob_results_list.write(origin + lbl_string)
+                # Loop over outputs
+                for fob, lbl_predict in zip(fob_results_list,lbl_batch_predict):
+                    # Loop over batch elements
+                    for origin, lbl in zip(origins, lbl_predict[0]):
+                        out_string = origin.decode("utf-8") + ',' + '{:d}'.format(np.squeeze(np.argmax(lbl))) + ',' + ','.join(['{:f}'.format(l) for l in np.squeeze(lbl)]) + '\n'
+                        fob.write(out_string)
                 
                 # Show progress in stdout
+                # batchCounter = 0
                 self._show_progress('TE', 0, batchCounter, math.ceil(float(dataset_sizes[2])/float(args_evaluate.batch_size))-1, np.nan, CMatsTest)
+            # except:
+                # pass
             # fob_results_list.close()
             # Print confusion matrix for each output
             print('\n')
             for i, CMat in enumerate(CMatsTest):
-                CMat.Save(os.path.join(self.dir_results, 'ConfMat_Test_output' + '{:02d}'.format(i) + '.csv'),'csv') # Save confusion matrix
+                CMat.Save(os.path.join(output_folder, self.model + '_ConfMat_Test_output' + '{:02d}'.format(i) + '.csv'),'csv') # Save confusion matrix
                 print(CMat)
-            
-        
 
-        
+            for fob in fob_results_list:
+                fob.close()
+
+        utils.show_message('Evaluation completed!', lvl=1)

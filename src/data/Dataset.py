@@ -280,7 +280,7 @@ class Dataset(object):
 
         self._process_cleanup(self.processFolder)
 
-    def get_dataset_list(self, tf_session=None, shuffle_before_split=True, shuffle_seed=1337, group_before_split=False, validation_method='none', holdout_split=[0.8, 0.1, 0.1], cross_folds=10, cross_val_fold=None, cross_test_fold=0, shard_val=None, shard_test=0, stratify_training_set = True):
+    def get_dataset_list(self, tf_session=None, data_source = 'tfrecords', data_folder = None, shuffle_before_split=True, shuffle_seed=1337, group_before_split=False, validation_method='none', holdout_split=[0.8, 0.1, 0.1], cross_folds=10, cross_val_fold=None, cross_test_fold=0, shard_val=None, shard_test=[0], stratify_training_set = True):
         # Return af list of the datasets split according to the chosen validation method. E.g. [train, val, test] for holdout
 
         close_session = False
@@ -335,12 +335,19 @@ class Dataset(object):
 
         with tf.name_scope('Dataset_manager'):
 
-            # Get all tfrecords
-            dataset_filenames = [self._get_output_filename(self.processFolder, i, self.numShards) for i in range(self.numShards)]
+            if (data_source == 'tfrecords'):
+                # Get all tfrecords
+                dataset_filenames = [self._get_output_filename(self.processFolder, i, self.numShards) for i in range(self.numShards)]
 
-            # Create full dataset from tfrecords
-            if not (validation_method == 'shards'):
-                tf_dataset = tf.data.TFRecordDataset(dataset_filenames)
+                # Create full dataset from tfrecords
+                if (validation_method == 'shards'):
+                    pass
+                else:
+                    tf_dataset = tf.data.TFRecordDataset(dataset_filenames)
+            elif (data_source == 'folder'):
+                tf_dataset = tf.data.Dataset.list_files(data_folder, shuffle=False)
+                tf_dataset = tf_dataset.map(lambda origin: self._filename_to_TFexample( origin))
+
 
             # Group
             if (group_before_split):
@@ -366,7 +373,7 @@ class Dataset(object):
             print('Dataset validation method: ' + validation_method)
 
             if validation_method == 'none':
-                tf_dataset_list = [tf_dataset, None, None]
+                tf_dataset_list = [tf_dataset, None, tf_dataset]
             elif validation_method == 'holdout':
                 holdout_split = holdout_split/np.sum(holdout_split) # Normalize
 
@@ -504,6 +511,10 @@ class Dataset(object):
             tf_session.close()
 
         return tf_dataset_list, dataset_sizes
+    
+    def _filename_to_TFexample(self, filename):
+        raise NotImplementedError('Method for converting an image file to tf example has not been implemented for this dataset.')
+        return image, class_idx, class_name, height, width, channels, filename
         
     def _class_combination_to_key(self, example_proto, class_combinations):
         
