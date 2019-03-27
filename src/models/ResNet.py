@@ -315,25 +315,26 @@ class ResNet(object):
         utils.show_message('Create model inference', lvl=1)
         print('Model: ' + self.model_version)
 
-        if self.model_version == 'ResNet50':
-            logits, endpoints = resnet_v1.resnet_v1_50(inputs, num_classes, is_training=is_training, global_pool=global_pool, spatial_squeeze=False)
-            input_layer_name = ['resnet_v1_50/conv1']
-            output_layer_names = [ep for ep in endpoints if ('logits' in ep)]
+        with slim.arg_scope(resnet_v1.resnet_arg_scope()):
+            if self.model_version == 'ResNet50':
+                logits, endpoints = resnet_v1.resnet_v1_50(inputs, num_classes, is_training=is_training, global_pool=global_pool, spatial_squeeze=False)
+                input_layer_name = ['resnet_v1_50/conv1']
+                output_layer_names = [ep for ep in endpoints if ('logits' in ep)]
 
-        elif self.model_version == 'ResNet101':
-            logits, endpoints = resnet_v1.resnet_v1_101(inputs, num_classes, is_training=is_training, global_pool=global_pool, spatial_squeeze=False)
-            input_layer_name = ['resnet_v1_101/conv1']
-            output_layer_names = [ep for ep in endpoints if ('logits' in ep)]
-        
-        elif self.model_version == 'ResNet152':
-            logits, endpoints = resnet_v1.resnet_v1_152(inputs, num_classes, is_training=is_training, global_pool=global_pool, spatial_squeeze=False)
-            input_layer_name = ['resnet_v1_152/conv1']
-            output_layer_names = [ep for ep in endpoints if ('logits' in ep)]
+            elif self.model_version == 'ResNet101':
+                logits, endpoints = resnet_v1.resnet_v1_101(inputs, num_classes, is_training=is_training, global_pool=global_pool, spatial_squeeze=False)
+                input_layer_name = ['resnet_v1_101/conv1']
+                output_layer_names = [ep for ep in endpoints if ('logits' in ep)]
+            
+            elif self.model_version == 'ResNet152':
+                logits, endpoints = resnet_v1.resnet_v1_152(inputs, num_classes, is_training=is_training, global_pool=global_pool, spatial_squeeze=False)
+                input_layer_name = ['resnet_v1_152/conv1']
+                output_layer_names = [ep for ep in endpoints if ('logits' in ep)]
 
-        elif self.model_version == 'ResNet200':
-            logits, endpoints = resnet_v1.resnet_v1_200(inputs, num_classes, is_training=is_training, global_pool=global_pool, spatial_squeeze=False)
-            input_layer_name = ['resnet_v1_200/conv1']
-            output_layer_names = [ep for ep in endpoints if ('logits' in ep)]
+            elif self.model_version == 'ResNet200':
+                logits, endpoints = resnet_v1.resnet_v1_200(inputs, num_classes, is_training=is_training, global_pool=global_pool, spatial_squeeze=False)
+                input_layer_name = ['resnet_v1_200/conv1']
+                output_layer_names = [ep for ep in endpoints if ('logits' in ep)]
 
         print('Input layer  : ' + '; '.join(input_layer_name))
         print('Output layers: ' + '; '.join(output_layer_names))
