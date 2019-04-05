@@ -395,7 +395,9 @@ class ResNet(object):
         optimizer = tf.train.AdamOptimizer()
         # TODO: https://github.com/ibab/tensorflow-wavenet/issues/267#issuecomment-302799152
         # optimizer = tf.train.GradientDescentOptimizer(0.001)
-        optimizer_op = optimizer.minimize(loss, var_list = model_vars_train)
+
+        optimizer_op = slim.learning.create_train_op(loss, optimizer)
+        # optimizer_op = optimizer.minimize(loss, var_list = model_vars_train)
 
         return optimizer_op
         
@@ -609,7 +611,7 @@ class ResNet(object):
         with tf.Session(config=tf.ConfigProto(gpu_options=gpu_options)) as sess:
             
             # Initialize all model Variables.
-            sess.run(tf.global_variables_initializer())                
+            sess.run(tf.global_variables_initializer())
             
             # Create Saver object for loading and storing checkpoints
             saver = tf.train.Saver()
