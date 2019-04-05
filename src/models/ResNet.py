@@ -315,7 +315,7 @@ class ResNet(object):
         utils.show_message('Create model inference', lvl=1)
         print('Model: ' + self.model_version)
 
-        with slim.arg_scope(resnet_v1.resnet_arg_scope()):
+        with slim.arg_scope(resnet_v1.resnet_arg_scope(batch_norm_decay=0.95)):
             if self.model_version == 'ResNet50':
                 logits, endpoints = resnet_v1.resnet_v1_50(inputs, num_classes, is_training=is_training, global_pool=global_pool, spatial_squeeze=False)
                 input_layer_name = ['resnet_v1_50/conv1']
