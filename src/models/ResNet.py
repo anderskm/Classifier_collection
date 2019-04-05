@@ -392,9 +392,9 @@ class ResNet(object):
         # print('Tensors to optimize: ')
         # print([T.name for T in model_vars_train])
 
-        optimizer = tf.train.AdamOptimizer()
+        # optimizer = tf.train.AdamOptimizer()
         # TODO: https://github.com/ibab/tensorflow-wavenet/issues/267#issuecomment-302799152
-        # optimizer = tf.train.GradientDescentOptimizer(0.001)
+        optimizer = tf.train.GradientDescentOptimizer(0.001)
 
         optimizer_op = slim.learning.create_train_op(loss, optimizer)
         # optimizer_op = optimizer.minimize(loss, var_list = model_vars_train)
