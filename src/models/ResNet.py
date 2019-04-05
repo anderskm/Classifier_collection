@@ -111,6 +111,10 @@ def hparams_parser_train(hparams_string):
                         type=int, default='10',
                         help='Number of samples in each batch')
 
+    parser.add_argument('--learning_rate', 
+                        type=float, default='0.001',
+                        help='Learning rate used for optimization')
+
     parser.add_argument('--model_version',
                         type=str, default='ResNet50',
                         choices=['ResNet50',
@@ -373,7 +377,7 @@ class ResNet(object):
         # )
         return loss
         
-    def _create_optimizer(self, loss, variables_to_optimize=None):
+    def _create_optimizer(self, loss, variables_to_optimize=None, learning_rate=0.001):
         """ Create optimizer for the network
         Args:
     
@@ -394,7 +398,7 @@ class ResNet(object):
 
         # optimizer = tf.train.AdamOptimizer()
         # TODO: https://github.com/ibab/tensorflow-wavenet/issues/267#issuecomment-302799152
-        optimizer = tf.train.GradientDescentOptimizer(0.001)
+        optimizer = tf.train.GradientDescentOptimizer(learning_rate)
 
         optimizer_op = slim.learning.create_train_op(loss, optimizer)
         # optimizer_op = optimizer.minimize(loss, var_list = model_vars_train)
@@ -567,7 +571,7 @@ class ResNet(object):
         else:
             raise NotImplementedError('Value set for optim_vars not implemented. Value = ' + optim_vars)
         
-        optimizer_op = self._create_optimizer(loss, variables_to_optimize=variables_to_optimize)
+        optimizer_op = self._create_optimizer(loss, variables_to_optimize=variables_to_optimize, learning_rate=args_train.learning_rate)
         
         # Setup summaries
         CMatsTrain = [CM.confusionmatrix(N_classes) for N_classes in num_classes]
