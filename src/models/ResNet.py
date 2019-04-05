@@ -535,9 +535,13 @@ class ResNet(object):
                                     name = 'input_lbls' + str(i)
                                 )
                             )
-
+        tf_is_training = tf.placeholder(
+            dtype = tf.bool,
+            shape = (),
+            name = 'is_training_flag'
+        )
         # define model model and load pre-trained model
-        output_logits, endpoints, input_layer_name, output_layer_names = self._create_inference(input_images, num_classes=num_classes, global_pool=args_train.global_pool)
+        output_logits, endpoints, input_layer_name, output_layer_names = self._create_inference(input_images, is_training=tf_is_training, num_classes=num_classes, global_pool=args_train.global_pool)
         if (use_pretrained_model):
             exclude_layers = []
             if (pretrain_exclude_input):
@@ -642,6 +646,8 @@ class ResNet(object):
                     # Built feed dict based on list of labels
                     feed_dict = {input_lbl: np.expand_dims(lbl_batch[:,i],1) for i,input_lbl in enumerate(input_lbls)}
                     feed_dict.update({input_images:    image_batch})
+                    feed_dict.update({tf_is_training: True})
+
                     # Perform training step
                     _, loss_out, lbl_batch_predict = sess.run(
                         [optimizer_op, loss, output_logits],
@@ -691,6 +697,8 @@ class ResNet(object):
                         # Built feed dict based on list of labels
                         feed_dict = {input_lbl: np.expand_dims(lbl_batch[:,i],1) for i,input_lbl in enumerate(input_lbls)}
                         feed_dict.update({input_images:    image_batch})
+                        feed_dict.update({tf_is_training: False})
+
                         # Perform evaluation step
                         lbl_batch_predict, loss_out = sess.run(
                                                             [output_logits, loss],
