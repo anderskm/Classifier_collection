@@ -25,8 +25,8 @@ from src.models.VGG import VGG
 from src.models.ResNet import ResNet
 from src.visualization import visualize
 
-DEVICE_ID_LIST = GPUtil.getFirstAvailable(attempts = 100, interval = 120)
-os.environ["CUDA_VISIBLE_DEVICES"] = str(DEVICE_ID_LIST[0])
+# DEVICE_ID_LIST = GPUtil.getFirstAvailable(attempts = 100, interval = 120)
+# os.environ["CUDA_VISIBLE_DEVICES"] = str(DEVICE_ID_LIST[0])
 
 """parsing and configuration"""
 def parse_args():
@@ -105,7 +105,10 @@ def parse_args():
     
     parser.add_argument('--preprocess',
                         type=str, default = '',
-                        help='Specify the preprocessing steps with assossiated parameters.')
+                        help='Specify the preprocessing steps with assossiated parameters used during training step.')
+    parser.add_argument('--preprocess_eval',
+                        type=str, default = '',
+                        help='Specify the preprocessing steps with assossiated parameters used during validation and testing steps.')
 
     return check_args(parser.parse_args())
 
@@ -169,7 +172,7 @@ def main():
         elif args.model == 'ResNet':
             model = ResNet(dataset = args.dataset,
                 id = args.id)
-            model.train(hparams_string = args.hparams, preprocessing_params=args.preprocess)
+            model.train(hparams_string = args.hparams, preprocessing_params=args.preprocess, preprocessing_eval_params=args.preprocess_eval)
             
     
 

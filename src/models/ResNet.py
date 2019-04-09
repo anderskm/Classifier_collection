@@ -436,7 +436,7 @@ class ResNet(object):
         sys.stdout.write('\r'+output_string)
         sys.stdout.flush()
         
-    def train(self, hparams_string, preprocessing_params=''):
+    def train(self, hparams_string, preprocessing_params='', preprocessing_eval_params=''):
         """ Run training of the network
         Args:
     
@@ -453,6 +453,7 @@ class ResNet(object):
         pretrain_exclude_output = args_train.pretrain_exclude_output
         optim_vars = args_train.optim_vars
         args_train.preprocessing = preprocessing_params
+        args_train.preprocessing_eval = preprocessing_eval_params
 
 
         print('Training parameters:')
@@ -512,18 +513,27 @@ class ResNet(object):
             tf_dataset_train = tf_dataset_train.map(preprocessing.pipe)
             tf_dataset_train = tf_dataset_train.batch(batch_size = self.batch_size, drop_remainder=False)
             tf_dataset_train = tf_dataset_train.repeat(count=-1) # -1 --> repeat indefinitely
-            tf_dataset_train = tf_dataset_train.prefetch(buffer_size=3)
+            # tf_dataset_train = tf_dataset_train.prefetch(buffer_size=3)
             tf_dataset_train_iterator = tf_dataset_train.make_one_shot_iterator()
             input_getBatch = tf_dataset_train_iterator.get_next()
+
+        # Setup preprocessing pipeline
+        preprocessing_eval = preprocess_factory.preprocess_factory()
+        if not (preprocessing_eval_params == ''):
+            preprocessing_eval.prep_pipe_from_string(preprocessing_eval_params)
+        elif not (preprocessing_params ==''): # Use same preprocessing as training step, if it is not specified for validation step
+            preprocessing_eval.prep_pipe_from_string(preprocessing_params)
+        else:
+            pass # If no preprocessing is specified, dont to any preprocessing
 
         with tf.name_scope('Validation_dataset'):
             tf_dataset_val = tf_dataset_list[1]
             if (tf_dataset_val is not None):
                 tf_dataset_val = tf_dataset_val.map(DS._decode_from_TFexample)
-                tf_dataset_val = tf_dataset_val.map(preprocessing.pipe)
+                tf_dataset_val = tf_dataset_val.map(preprocessing_eval.pipe)
                 tf_dataset_val = tf_dataset_val.batch(batch_size = self.batch_size, drop_remainder=False)
                 tf_dataset_val = tf_dataset_val.repeat(count=-1) # -1 --> repeat indefinitely
-                tf_dataset_val = tf_dataset_val.prefetch(buffer_size=3)
+                # tf_dataset_val = tf_dataset_val.prefetch(buffer_size=3)
                 tf_dataset_val_iterator = tf_dataset_val.make_one_shot_iterator()
                 tf_input_getBatch_val = tf_dataset_val_iterator.get_next()
 
