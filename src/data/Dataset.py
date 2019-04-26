@@ -513,6 +513,32 @@ class Dataset(object):
             tf_session.close()
 
         return tf_dataset_list, dataset_sizes
+
+    def save_dataset_filenames(self, filename, tf_dataset, tf_session=None):
+        close_session = False
+        if (tf_session is None):
+            print('TF session not specified. Creating new tf session.')
+            tf_session = tf.Session('')
+            close_session = True
+        
+        fobj = open(filename, 'w')
+
+        try:
+            tf_dataset_name = tf_dataset.map(lambda example,: self._get_name_only2(example))
+            tf_dataset_name_iterator = tf_dataset_name.make_one_shot_iterator()
+            tf_input_getBatch = tf_dataset_name_iterator.get_next()
+        
+            while True:
+                this_batch = tf_session.run(tf_input_getBatch)
+                fobj.write(this_batch.decode('utf-8') + '\n')
+        except tf.errors.OutOfRangeError:
+            pass
+        
+        fobj.close()
+        if (close_session):
+            print('Closing tf session...')
+            tf_session.close()
+
     
     def _filename_to_TFexample(self, filename):
         raise NotImplementedError('Method for converting an image file to tf example has not been implemented for this dataset.')
@@ -527,6 +553,18 @@ class Dataset(object):
         key = tf.argmax(tf.cast(tf.reduce_all(tf.equal(tf.cast(class_combinations,tf.int64), class_lbl),axis=1), tf.int64), axis=0) #tf.argmax(tf.cast(tf.equal(tf.cast(class_combinations,tf.int64), class_lbl), tf.int64), axis=1)        
 
         return example_proto, class_lbl, key
+
+    def _get_name_only2(self, example_proto):
+         # Get filename only
+        features = {
+            'image/origin/filename': tf.FixedLenFeature([], tf.string)
+        }
+
+        parsed_example = tf.parse_single_example(example_proto, features)
+
+        origin = parsed_example['image/origin/filename']
+
+        return origin
 
     def _get_name_only(self, example_proto):
          # Get filename only

@@ -498,6 +498,11 @@ class ResNet(object):
                                                             shard_test=args_train.shard_test,
                                                             stratify_training_set=args_train.stratify_training_set)
 
+        with tf.Session('') as tf_session:
+            DS.save_dataset_filenames(os.path.join(self.dir_logs, 'filenames_training.txt'),tf_dataset_list[0], tf_session)
+            DS.save_dataset_filenames(os.path.join(self.dir_logs, 'filenames_validation.txt'),tf_dataset_list[1], tf_session)
+            DS.save_dataset_filenames(os.path.join(self.dir_logs, 'filenames_test.txt'),tf_dataset_list[2], tf_session)
+
         class_dicts = DS.get_class_dicts()
         num_classes = [len(class_dict) for class_dict in class_dicts]
 
