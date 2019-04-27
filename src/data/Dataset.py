@@ -533,6 +533,8 @@ class Dataset(object):
                 fobj.write(this_batch.decode('utf-8') + '\n')
         except tf.errors.OutOfRangeError:
             pass
+        except AttributeError:
+            pass
         
         fobj.close()
         if (close_session):
