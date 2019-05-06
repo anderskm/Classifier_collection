@@ -840,7 +840,7 @@ class ResNet(object):
             # Grab input and output tensors
             graph = tf.get_default_graph()
             input_images = graph.get_tensor_by_name('input_images:0')
-            tf_is_training = graph.get_tensor_by_name('tf_is_training:0')
+            tf_is_training = graph.get_tensor_by_name('is_training_flag:0')
             input_lbls = []
             output_logits = []
             for i, N_classes in enumerate(num_classes):
