@@ -840,6 +840,7 @@ class ResNet(object):
             # Grab input and output tensors
             graph = tf.get_default_graph()
             input_images = graph.get_tensor_by_name('input_images:0')
+            tf_is_training = graph.get_tensor_by_name('tf_is_training:0')
             input_lbls = []
             output_logits = []
             for i, N_classes in enumerate(num_classes):
@@ -872,6 +873,7 @@ class ResNet(object):
                 # feed_dict = {input_lbl: np.expand_dims(lbl_batch[:,i],1) for i,input_lbl in enumerate(input_lbls)}
                 # feed_dict.update({input_images:    image_batch})
                 feed_dict = {input_images:    image_batch}
+                feed_dict.update({tf_is_training: False})
                 # Perform evaluation step
                 lbl_batch_predict = tf_session.run([output_logits],
                                                     feed_dict=feed_dict
