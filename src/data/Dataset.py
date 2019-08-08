@@ -370,7 +370,7 @@ class Dataset(object):
             if (shuffle_before_split):
                 # Sets the operation seed. See documentation for tf.random.set_random_seed (https://www.tensorflow.org/api_docs/python/tf/random/set_random_seed)
                 print("Shuffle seed: " + str(shuffle_seed))
-                tf.random.set_random_seed(shuffle_seed)
+                #tf.random.set_random_seed(shuffle_seed)
                 tf_dataset = tf_dataset.shuffle(buffer_size=10000, seed=shuffle_seed, reshuffle_each_iteration=False)
 
             print('Dataset validation method: ' + validation_method)
