@@ -12,10 +12,12 @@ import argparse
 import shlex
 from tensorflow.contrib import slim
 from tensorflow.contrib.layers.python.layers import layers as layers_lib
+import numpy as np
 
 import src.utils as utils
 import src.data.util_data as util_data
 import src.data.datasets.psd as psd_dataset
+import src.data.datasets.seeds as seeds_dataset
 
 layers = tf.contrib.layers
 framework = tf.contrib.framework
@@ -30,11 +32,11 @@ def hparams_parser_train(hparams_string):
                         help='Max number of epochs to run')
 
     parser.add_argument('--batch_size', 
-                        type=int, default='64', 
+                        type=int, default='1', 
                         help='Number of samples in each batch')
 
     parser.add_argument('--use_imagenet',
-                        type=bool, default=True,
+                        type=bool, default=False,
                         help='Use pretrained model trained for imagenet for weight initilization')
 
     parser.add_argument('--model_version',
@@ -78,13 +80,18 @@ class VGG(object):
         utils.checkfolder(self.dir_results)
 
         self.dataset = dataset
+        print('Selected dataset: ' + dataset)
         # Specify valid dataset for model
         if dataset =='PSD_Segmented':
             self.dateset_filenames = ['data/processed/PSD_Segmented/PSD-data_{:03d}-of-{:03d}.tfrecord'.format(i+1,psd_dataset._NUM_SHARDS) for i in range(psd_dataset._NUM_SHARDS)]
             self.lbls_dim = 9
             self.image_dims = [128,128,3]
             self.fc6_dims = [4,4] # 128/(2^5) = 4
-
+        elif dataset == 'seeds':
+            self.dateset_filenames = ['data/processed/seeds/PSD-data_{:03d}-of-{:03d}.tfrecord'.format(i+1,psd_dataset._NUM_SHARDS) for i in range(psd_dataset._NUM_SHARDS)]
+            self.lbls_dim = 2
+            self.image_dims = [128,128,19]
+            self.fc6_dims = [4,4] # 128/(2^5) = 4
         else:
             raise ValueError('Selected Dataset is not supported by model: ' + self.model)
         
@@ -151,11 +158,20 @@ class VGG(object):
     
         Returns:
         """
+        # loss = tf.reduce_mean(
+        #     tf.nn.softmax_cross_entropy_with_logits_v2(
+        #         labels=labels,
+        #         logits=logits,
+        #         name = 'Loss')
+        # )
+
+        targets = tf.cast(tf.math.argmax(labels,axis=1), tf.float32)
+        _logits = tf.cast(tf.squeeze(tf.math.reduce_max(logits, axis=3)), tf.float32)
         loss = tf.reduce_mean(
-            tf.nn.softmax_cross_entropy_with_logits_v2(
-                labels=labels,
-                logits=logits,
-                name = 'Loss')
+            tf.nn.weighted_cross_entropy_with_logits(
+                targets=targets,
+                logits=_logits,
+                pos_weight=1)
         )
         return loss
         
@@ -289,22 +305,37 @@ class VGG(object):
                 #     writer.add_summary(summary_loss, global_step=-1)
                 
                 utils.show_message('Running training epoch no: {0}'.format(epoch_n))
+                batchCounter = 0
+                CMat = np.zeros((2,2))
                 while True:
                     try:
+                        interationCnt = interationCnt + 1
+                        batchCounter = batchCounter + 1
                         image_batch, lbl_batch = sess.run(input_getBatch)
-                        _, summary_loss = sess.run(
-                            [optimizer_op, summary_op],
+                        # print(lbl_batch)
+                        _, summary_loss, lbl_batch_predict = sess.run(
+                            [optimizer_op, summary_op, output_logits],
                             feed_dict={input_images:    image_batch,
                                        input_lbls:      lbl_batch})
-                        
+
                         writer.add_summary(summary_loss, global_step=interationCnt)
                         counter =+ 1
+                        lbl_idx = np.squeeze(np.argmax(lbl_batch, axis=1))
+                        lbl_idx_predict = np.squeeze(np.argmax(lbl_batch_predict, axis=3))
+                        if (self.batch_size > 1):
+                            for l in range(len(lbl_idx)):
+                                CMat[lbl_idx[l],lbl_idx_predict[l]] += 1
+                        else:
+                            CMat[lbl_idx,lbl_idx_predict] += 1
+                        acc = np.sum(np.diagonal(CMat))/np.sum(CMat,axis=(0,1))
+                        print(str(epoch_n) + ' ' + str(batchCounter)  + ' ' + str(np.squeeze(np.argmax(lbl_batch, axis=1))) + ' ' + str(np.squeeze(np.argmax(lbl_batch_predict, axis=3))) + ' ' + str(acc))
                         
                     except tf.errors.OutOfRangeError:
                         # Do some evaluation after each Epoch
                         break
                 
                 if epoch_n % 1 == 0:
+                    print(CMat)
                     saver.save(sess,os.path.join(self.dir_checkpoints, self.model + '.model'), global_step=epoch_n)
                 
             
@@ -339,7 +370,31 @@ class VGG(object):
 
         elif self.dataset == 'PSD_Nonsegmented':
             pass
+        elif self.dataset == 'seeds':
+            #image_reader = seeds_dataset.ImageReader()
+            #image = image_reader.unpack(image,height_proto,width_proto, channels_proto)
 
+            image = tf.reshape(image, [height_proto, width_proto, channels_proto])
+            #tf.print(tf.shape(image))
+            #tf.print(origin_proto)
+            #image, image_rest = tf.split(image, [3, 16], axis=2)
+            # tf.print(tf.shape(image))
+            rotations = tf.random.uniform([1,],minval=0,maxval=6.28)
+            # tf.print(tf.shape(rotations))
+            # tf.print(rotations)
+            image = tf.contrib.image.rotate(image, angles=rotations)
+            rotImageShape = tf.shape(image)
+            # tf.print(rotImageShape)
+            # offset_h = tf.math.floor((rotImageShape[1]-256)/2)
+            # offset_w = tf.math.floor((rotImageShape[2]-256)/2)
+            image = tf.image.resize_image_with_crop_or_pad(image, target_height=self.image_dims[0], target_width=self.image_dims[1])
+            # image = tf.image.crop_to_bounding_box(
+            #     image=image, 
+            #     offset_height=offset_h,
+            #     offset_width=offset_w,
+            #     target_height=256,
+            #     target_width=256)
+            # tf.print(tf.shape(image))
         elif self.dataset == 'PSD_Segmented':
             max_dim = psd_dataset._LARGE_IMAGE_DIM
             height_diff = max_dim - height_proto
@@ -348,7 +403,7 @@ class VGG(object):
             paddings = tf.floor_div([[height_diff, height_diff], [width_diff, width_diff], [0,0]],2)
             image = tf.pad(image, paddings, mode='CONSTANT', name=None, constant_values=-1)
 
-        image = tf.image.resize_images(image, size = self.image_dims[0:-1])  
+        # image = tf.image.resize_images(image, size = self.image_dims[0:-1])
 
         lbl = tf.one_hot(lbl_proto, self.lbls_dim)
 
