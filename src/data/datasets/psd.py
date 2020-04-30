@@ -141,7 +141,7 @@ def _convert_to_tfrecord(filenames, class_dict, tfrecord_writer):
             sys.stdout.flush()
 
             # Read the filename:
-            encoded_img = tf.gfile.FastGFile(filenames[i], 'rb').read()
+            encoded_img = tf.gfile.FastGFile(filenames[i], 'rb').read() # Use tf.gfile.GFile instead. FastGFile will be removed in future version
             encoded_img, height, width, channels = image_reader.truncate_image(sess, encoded_img)
 
             if _EXCLUDE_LARGE_IMAGES and (height > _LARGE_IMAGE_DIM or width > _LARGE_IMAGE_DIM):
@@ -239,8 +239,11 @@ def process(dataset_part):
     archive = zipfile.ZipFile(data_filename)
     archive.extractall(_dir_processed)
     filenames, class_names = _get_filenames_and_classes(_dir_processed, [setname], exclude_list)
+    print(len(filenames))
+    print(len(class_names))
 
     class_dict = dict(zip(class_names, range(len(class_names))))
+    print(class_dict)
     utils.save_dict(class_dict, _dir_processed, 'class_dict.json')
 
     for shard_n in range(_NUM_SHARDS):
