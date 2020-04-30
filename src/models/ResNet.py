@@ -5,6 +5,7 @@ Created on Tue Oct 10 16:43:52 2017
 
 @author: leminen
 """
+import datetime
 import os
 import sys
 import tensorflow as tf
@@ -849,13 +850,14 @@ class ResNet(object):
                 # output_logits.append(graph.get_tensor_by_name('logits' + str(i) + ':0'))
             
             fob_results_list = []
+            datetime_string = datetime.datetime.now().strftime('%Y%m%dT%H%M%S')
             for i, N_classes in enumerate(num_classes):
-                results_list_file = os.path.join(output_folder, self.model + '_Classifications_output' + '{:02d}'.format(i) + '.csv')
+                results_list_file = os.path.join(output_folder, self.model + '_' + datetime_string + '_Classifications_output' + '{:02d}'.format(i) + '.csv')
                 fob = open(results_list_file,'w+')
                 fob_results_list.append(fob)
                 # Write header
-                out_string = 'filename' + ',predict_idx' + ',' + ','.join(['logit_'+ '{:d}'.format(c) for c in range(N_classes)]) + '\n'
-                fob.write(out_string)
+                #out_string = 'filename' + ',true_idx,predict_idx' + ',' + ','.join(['logit_'+ '{:d}'.format(c) for c in range(N_classes)]) + '\n'
+                #fob.write(out_string)
 
             # Reset confusion matrices and accumulated loss
             for CMat in CMatsTest:
@@ -890,8 +892,8 @@ class ResNet(object):
                 # Loop over outputs
                 for fob, lbl_predict in zip(fob_results_list,lbl_batch_predict):
                     # Loop over batch elements
-                    for origin, lbl in zip(origins, lbl_predict[0]):
-                        out_string = origin.decode("utf-8") + ',' + '{:d}'.format(np.squeeze(np.argmax(lbl))) + ',' + ','.join(['{:f}'.format(l) for l in np.squeeze(lbl)]) + '\n'
+                    for origin, lbl, lbl_t in zip(origins, lbl_predict[0], lbl_batch):
+                        out_string = origin.decode("utf-8") + ',' + '{:d}'.format(lbl_t[0]) + ',' + '{:d}'.format(np.squeeze(np.argmax(lbl))) + ',' + ','.join(['{:f}'.format(l) for l in np.squeeze(lbl)]) + '\n'
                         fob.write(out_string)
                 
                 # Show progress in stdout
@@ -903,7 +905,7 @@ class ResNet(object):
             # Print confusion matrix for each output
             print('\n')
             for i, CMat in enumerate(CMatsTest):
-                CMat.Save(os.path.join(output_folder, self.model + '_ConfMat_Test_output' + '{:02d}'.format(i) + '.csv'),'csv') # Save confusion matrix
+                CMat.Save(os.path.join(output_folder, self.model + '_' + datetime_string + '_ConfMat_Test_output' + '{:02d}'.format(i) + '.csv'),'csv') # Save confusion matrix
                 print(CMat)
 
             for fob in fob_results_list:
