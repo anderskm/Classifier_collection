@@ -243,6 +243,9 @@ def resnet_v1(inputs,
           # Global average pooling.
           net = tf.reduce_mean(net, [1, 2], name='pool5', keep_dims=True)
           end_points['global_pool'] = net
+        else:
+          net = tf.nn.avg_pool(net, ksize=[1, 8, 8, 1], strides=[1, 1, 1, 1], padding='SAME', name='pool5')
+          end_points['global_pool'] = net
         if num_classes:
           nets = []
           final_block_output_size = net.get_shape().as_list()
@@ -252,8 +255,12 @@ def resnet_v1(inputs,
                               normalizer_fn=None, scope='logits' + str(i)))
             else:
               # If global pool is false, set the convolution to match the size of the output of the last dense block.
-              # NOTE: The requires the input size to be specified! 
-              nets.append(slim.conv2d(net, N_classes, final_block_output_size[1:3], activation_fn=None,
+              # NOTE: The requires the input size to be specified!
+              if (None in final_block_output_size[1:2]): # If not specified, use a 1x1 kernel
+                nets.append(slim.conv2d(net, N_classes, [1, 1], activation_fn=None,
+                              normalizer_fn=None, scope='logits'+str(i), padding='VALID'))
+              else:
+                nets.append(slim.conv2d(net, N_classes, final_block_output_size[1:3], activation_fn=None,
                               normalizer_fn=None, scope='logits'+str(i), padding='VALID'))
           # net = slim.conv2d(net, num_classes, [1, 1], activation_fn=None,
           #                   normalizer_fn=None, scope='logits')
