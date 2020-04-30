@@ -67,11 +67,15 @@ def dataset_parser_group(parser):
     parser_group_dataset.add_argument('--data_source',
                                         type=str, default='tfrecords',
                                         choices=['tfrecords',
-                                                'folder'],
+                                                'folder',
+                                                'file'],
                                         help='Specify data source. tfrecords or folder.')
     parser_group_dataset.add_argument('--data_folder',
                                         type=str, default='',
                                         help='Specify folder where to read the images, when --data_source is set to folder')
+    parser_group_dataset.add_argument('--data_file',
+                                        type=str, default='',
+                                        help='Specify where each line corresponds to the path of an image, when --data_source is set to file')
     parser_group_dataset.add_argument('--shuffle_before_split',
                                         type=str2bool, default='True',
                                         help='Shuffle all examples before splitting dataset into training, validation and test.')
@@ -184,6 +188,8 @@ class ResNet(object):
             self.model = self.model + '_' + id
 
         self.dir_base        = 'models/' + self.model
+        # self.dir_base        = 'models_cross_val_long/' + self.model
+        print(self.dir_base)
         self.dir_logs        = self.dir_base + '/logs'
         self.dir_checkpoints = self.dir_base + '/checkpoints'
         self.dir_results     = self.dir_base + '/results'
@@ -353,7 +359,7 @@ class ResNet(object):
         Returns:
         """
         loss = tf.constant(0, dtype=tf.float32)
-        for logit, label, N_classes in zip(logits,labels, num_classes):
+        for logit, label, N_classes in zip(logits, labels, num_classes):
             lbl = tf.one_hot(label, N_classes)
             loss += tf.nn.softmax_cross_entropy_with_logits_v2(
                         labels=lbl,
@@ -798,6 +804,7 @@ class ResNet(object):
             DS = DS_Okra_D0.Dataset()
         tf_dataset_list, dataset_sizes = DS.get_dataset_list(data_source = args_evaluate.data_source,
                                                             data_folder = args_evaluate.data_folder,
+                                                            data_file = args_evaluate.data_file,
                                                             shuffle_before_split=args_evaluate.shuffle_before_split,
                                                             shuffle_seed=args_evaluate.shuffle_seed,
                                                             group_before_split=args_evaluate.group_before_split,
@@ -846,7 +853,7 @@ class ResNet(object):
             output_logits = []
             for i, N_classes in enumerate(num_classes):
                 input_lbls.append(graph.get_tensor_by_name('input_lbls' + str(i) + ':0'))
-                output_logits.append(graph.get_tensor_by_name('resnet_v1_101/logits' + str(i) + '/BiasAdd:0'))
+                output_logits.append(graph.get_tensor_by_name('resnet_v1_50/logits' + str(i) + '/BiasAdd:0'))
                 # output_logits.append(graph.get_tensor_by_name('logits' + str(i) + ':0'))
             
             fob_results_list = []
