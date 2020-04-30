@@ -97,3 +97,25 @@ class Dataset(superDataset.Dataset):
                 name='Image_decoder'
             )
             return decoded_image
+
+        def to_RGB(self, raw_image, gain=1.0, normalize=True):
+            red_channel_responses = np.asarray([0, 0, 0.0369139549956096, 0.0523482283247618, 0.105564094022188, 0.383669457929883, 0.730249295315904, 0.991933145444743, 0.930799922301415, 0.425092541012886, 0.2106692380065, 0.0975977243752676, 0.0068331963244273, 0, 0, 0, 0, 0, 0]).reshape((19,1))
+            green_channel_responses = np.asarray([0, 0.0120732388216368, 0.0601790292541333, 0.0912116423383781, 0.189273593076368, 0.549788971492032, 0.918341352767597, 0.81765429467056, 0.507831521160346, 0.0710667549348757, 0.0289961859201456, 0.0124101353134283, 0.00338861996111386, 0, 0, 0, 0, 0, 0]).reshape((19,1))
+            blue_channel_responses = np.asarray([0, 0.130978573502305, 0.893913954225284, 0.914091893437036, 0.590796359506189, 0.0920940594318619, 0.0244419235446471, 0.00491389861881971, 0.00491389861881971, 0.00491389861881971, 0.00432483677858752, 0.00432483677858752, 0, 0, 0, 0, 0, 0, 0]).reshape((19,1))
+            raw_image = np.asarray(raw_image)
+
+            red_channel = np.dot(raw_image, red_channel_responses)*gain
+            green_channel = np.dot(raw_image, green_channel_responses)*gain
+            blue_channel = np.dot(raw_image, blue_channel_responses)*gain
+
+            if (normalize):
+                red_channel /= red_channel_responses.sum()
+                green_channel /= green_channel_responses.sum()
+                blue_channel /= blue_channel_responses.sum()
+
+            red_channel = np.minimum(255.0, red_channel)
+            green_channel = np.minimum(255.0, green_channel)
+            blue_channel = np.minimum(255.0, blue_channel)
+
+            return np.concatenate((red_channel, green_channel, blue_channel), axis=-1).astype(dtype=np.uint8)
+
