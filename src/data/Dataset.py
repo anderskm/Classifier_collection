@@ -280,7 +280,7 @@ class Dataset(object):
 
         self._process_cleanup(self.processFolder)
 
-    def get_dataset_list(self, tf_session=None, data_source = 'tfrecords', data_folder = None, shuffle_before_split=True, shuffle_seed=1337, group_before_split=False, validation_method='none', holdout_split=[0.8, 0.1, 0.1], cross_folds=10, cross_val_fold=None, cross_test_fold=0, shard_val=None, shard_test=[0], stratify_training_set = True):
+    def get_dataset_list(self, tf_session=None, data_source = 'tfrecords', data_folder = None, data_file = None, shuffle_before_split=True, shuffle_seed=1337, group_before_split=False, validation_method='none', holdout_split=[0.8, 0.1, 0.1], cross_folds=10, cross_val_fold=None, cross_test_fold=0, shard_val=None, shard_test=[0], stratify_training_set = True):
         # Return af list of the datasets split according to the chosen validation method. E.g. [train, val, test] for holdout
 
         close_session = False
@@ -347,7 +347,11 @@ class Dataset(object):
             elif (data_source == 'folder'):
                 tf_dataset = tf.data.Dataset.list_files(data_folder, shuffle=False)
                 tf_dataset = tf_dataset.map(lambda origin: self._filename_to_TFexample( origin))
-
+            elif (data_source == 'file'):
+                with open(data_file) as f:
+                    files = f.readlines()
+                tf_dataset = tf.data.Dataset.list_files(files, shuffle=False)
+                tf_dataset = tf_dataset.map(lambda origin: self._filename_to_TFexample( origin))
 
             # Group
             if (group_before_split):
