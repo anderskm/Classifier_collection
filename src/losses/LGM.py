@@ -55,7 +55,7 @@ class LGM:
 
     def figure_to_array(self, figure):
         figure.canvas.draw()
-        X = np.fromstring(figure.canvas.renderer.buffer_rgba(),dtype=np.uint8, sep='')
+        X = np.frombuffer(figure.canvas.renderer.buffer_rgba(), dtype=np.uint8)
         X = X.reshape(figure.canvas.get_width_height()[::-1] + (4,))
         plt.close(figure)
         return np.expand_dims(X, axis=0)
