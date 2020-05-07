@@ -24,6 +24,7 @@ import numpy as np
 
 import src.confusionmatrix as CM
 
+import src.losses.LGM
 import src.utils as utils
 import src.preprocess_factory as preprocess_factory
 import src.tf_custom_summaries as tf_custom_summaries
@@ -403,14 +404,14 @@ class ResNet(object):
         # print('Tensors to optimize: ')
         # print([T.name for T in model_vars_train])
 
-        # optimizer = tf.train.AdamOptimizer()
+        optimizer = tf.train.AdamOptimizer()
         # TODO: https://github.com/ibab/tensorflow-wavenet/issues/267#issuecomment-302799152
-        optimizer = tf.train.GradientDescentOptimizer(learning_rate)
+        # optimizer = tf.train.GradientDescentOptimizer(learning_rate)
 
-        optimizer_op = slim.learning.create_train_op(loss, optimizer)
+        optimizer_op = slim.learning.create_train_op(loss, optimizer, variables_to_train=model_vars_train)
         # optimizer_op = optimizer.minimize(loss, var_list = model_vars_train)
 
-        return optimizer_op
+        return optimizer_op, optimizer
         
     def _create_summaries(self, loss, summary_dict={}, summary_list=[]):
         """ Create summaries for the network
@@ -437,9 +438,16 @@ class ResNet(object):
         return
 
     def _show_progress(self, tag, epoch, batch_counter, batch_max, loss, CMats):
-        # print('T' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' Loss: ' + '{:>7.3g}'.format(loss_out) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsTrain]))
+        # print('T' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' Loss: ' + '{:>7.3g}'.format(loss_Lgm) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsTrain]))
         batch_counter_len = math.ceil(math.log10(batch_max))
         output_string = tag + '{:d}'.format(epoch) + ' ' + '{:>d}'.format(batch_counter).rjust(batch_counter_len) + '/' + '{:>d}'.format(batch_max).rjust(batch_counter_len)  + ' Loss: ' + '{:>7.3g}'.format(loss) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMats])
+        sys.stdout.write('\r'+output_string)
+        sys.stdout.flush()
+
+    def _show_progress2(self, tag, epoch, batch_counter, batch_max, loss, Lcls, Llkd, acc=0, gmspace=-1.23456789):
+        # print('T' + '{:d}'.format(epoch_n) + ' ' + '{:>4d}'.format(batchCounter)  + ' Loss: ' + '{:>7.3g}'.format(loss_Lgm) + ' Acc(s): ' + '  '.join(['{:>5.3f}'.format(CMat.accuracy()) for CMat in CMatsTrain]))
+        batch_counter_len = math.ceil(math.log10(batch_max))
+        output_string = tag + '{:d}'.format(epoch) + ' ' + '{:>d}'.format(batch_counter).rjust(batch_counter_len) + '/' + '{:>d}'.format(batch_max).rjust(batch_counter_len)  + ' Loss: ' + '{:>7.3g}'.format(loss) + ';' + '{:>7.3g}'.format(Lcls) + ';' + '{:>7.3g}'.format(Llkd) + ';' + '{:>7.3g}'.format(acc) + ';' + '{:>7.3g}'.format(gmspace)
         sys.stdout.write('\r'+output_string)
         sys.stdout.flush()
         
@@ -582,7 +590,42 @@ class ResNet(object):
             model_vars_not_restored = [value for key,value in endpoints.items()]
         
         # Setup loss function
-        loss = self._create_losses(output_logits, input_lbls, num_classes)
+        # loss = self._create_losses(output_logits, input_lbls, num_classes)
+
+        # endpoints['global_pool']
+
+        
+
+        # # TODO: Experimental. LGM loss
+        # loss = tf.constant(0, dtype=tf.float32)
+        # num_features = endpoints['global_pool'].get_shape().as_list()[-1]
+        # tf.Variable(initial_value=tf.random_normal_initializer(mean=0.0, stddev=1.0)(shape=(1,1,endpoints['global_pool'].get_shape().as_list()[-1],2)))
+        # [filter_height, filter_width, in_channels, out_channels]
+        # tf.nn.conv2d()
+        # tf.nn.relu()
+        num_features = 2
+        with tf.name_scope('LGM_space'):
+            LGM_weights = tf.Variable(initial_value=tf.random_normal_initializer(mean=0.0, stddev=0.0001)(shape=(1,1,endpoints['global_pool'].get_shape().as_list()[-1],2)))
+            LGM_biases = tf.Variable(initial_value=tf.random_normal_initializer(mean=0.0, stddev=1.0)(shape=(1,1,1,2)))
+            LGM_space = tf.nn.conv2d(endpoints['global_pool'], LGM_weights, strides=[1,1,1,1], padding='SAME')
+            LGM_space = LGM_space + LGM_biases
+        # with slim.arg_scope(resnet_v1.resnet_arg_scope(batch_norm_decay=0.95)):
+            # tf_gmspace = slim.conv2d(endpoints['global_pool'], num_features, [1, 1], activation_fn=None, # tf.nn.relu
+            #                           normalizer_fn=None, scope='GMspace', padding='VALID')
+        loss = tf.constant(0, dtype=tf.float32)
+        for label, N_classes in zip(input_lbls, num_classes):
+            loss_func = src.losses.LGM.LGM(num_feats=num_features, num_classes=N_classes, lmbda=0.1, alpha=1.0)
+            loss += loss_func.apply(LGM_space, label)
+            # loss += loss_func.apply(endpoints['global_pool'], label)
+            # loss += loss_func.apply(tf_gmspace, label)
+            # loss += tf.nn.softmax_cross_entropy_with_logits_v2(
+            #             labels=lbl,
+            #             logits=logit,
+            #             name = 'Loss')
+        loss = tf.reduce_mean(loss)
+        # model_vars_not_restored.append(tf_gmspace)
+
+        
 
         # Setup optimizer
         variables_to_optimize = None
@@ -593,12 +636,14 @@ class ResNet(object):
         else:
             raise NotImplementedError('Value set for optim_vars not implemented. Value = ' + optim_vars)
         
-        optimizer_op = self._create_optimizer(loss, variables_to_optimize=variables_to_optimize, learning_rate=args_train.learning_rate)
+        optimizer_op, optimizer = self._create_optimizer(loss, variables_to_optimize=variables_to_optimize, learning_rate=args_train.learning_rate)
         
         # Setup summaries
         CMatsTrain = [CM.confusionmatrix(N_classes) for N_classes in num_classes]
         CMatsVal = [CM.confusionmatrix(N_classes) for N_classes in num_classes]
-        tf_loss = tf.placeholder(tf.float32, name='loss_mean')
+        tf_loss_Lgm = tf.placeholder(tf.float32, name='Loss_Lgm')
+        tf_loss_Lcls = tf.placeholder(tf.float32, name='Loss_Lcls')
+        tf_loss_Llkd = tf.placeholder(tf.float32, name='Loss_Llkd')
         tf_accuracies = []
         tf_recalls = []
         tf_precisions = []
@@ -620,7 +665,9 @@ class ResNet(object):
                                 )
                             )
         summary_list = tf_accuracies
-        summary_dict = {'Overview/loss':         tf_loss}
+        summary_dict = {'Overview/Lgm':          tf_loss_Lgm, 
+                        'Overview/Lcls':         tf_loss_Lcls,
+                        'Overview/Llkd':         tf_loss_Llkd}
 
         layout_summary = tf_custom_summaries.summary_lib.custom_scalar_pb(
                                 tf_custom_summaries.layout_pb2.Layout(
@@ -628,6 +675,25 @@ class ResNet(object):
                                     )
                             )
         self._create_summaries(loss, summary_dict=summary_dict, summary_list=summary_list)
+        tf_cmat_summary = tf.placeholder(tf.float32, shape=(1, num_classes[0],num_classes[0],1), name='CMat')
+        tf.summary.image('CMat', tf_cmat_summary, max_outputs=100)
+        tf_feat_summary = tf.placeholder(tf.float32, shape=(1, None, None, 3), name='feat_vec')
+        tf.summary.image('feat_vec', tf_feat_summary, max_outputs=100)
+
+        tf_distributions_summary = tf.placeholder(tf.float32, shape=(1, None, None, 3), name='distributions')
+        tf.summary.image('Distributions', tf_distributions_summary, max_outputs=100)
+
+        tf_distributions_colored_summary = tf.placeholder(tf.float32, shape=(1, None, None, 3), name='distributions_colored')
+        tf.summary.image('Distributions_colored', tf_distributions_colored_summary, max_outputs=100)
+
+        tf_classifications_summary = tf.placeholder(tf.float32, shape=(1, None, None, 3), name='classifications_map')
+        tf.summary.image('Classifications_map', tf_classifications_summary, max_outputs=100)
+
+        tf_centers_summary = tf.placeholder(tf.float32, shape=(loss_func.num_feats, loss_func.num_classes))
+        tf.summary.text('Centers', tf.as_string(tf_centers_summary))
+        tf_log_covars_summary = tf.placeholder(tf.float32, shape=(loss_func.num_feats, loss_func.num_classes))
+        tf.summary.text('Log_covars', tf.as_string(tf_log_covars_summary))
+
         tf_summary_op = tf.summary.merge_all()
         
         # show network architecture
@@ -654,7 +720,7 @@ class ResNet(object):
             if ckpt and ckpt.model_checkpoint_path:
                 saver.restore(sess, ckpt.model_checkpoint_path)
                 ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
-                epoch_start = int(ckpt_name.split('-')[-1])
+                epoch_start = int(ckpt_name.split('-')[-1])+1
             
             # Do training loops
             for epoch_n in range(epoch_start, self.epoch_max):
@@ -666,43 +732,72 @@ class ResNet(object):
                 # Reset confusion matrices and accumulated loss
                 for CMat in CMatsTrain:
                     CMat.Reset()
-                loss_train = 0
+                Lgm_train = 0
+                Lcls_train = 0
+                Llkd_train = 0
+                lgm_space_trains = []
+                labels_epoch = []
                  # Loop through all batches of examples
                 for batchCounter in range(math.ceil(float(dataset_sizes[0])/float(self.batch_size))):
                     # Grab an image and label batch from the validation set
                     image_batch, lbl_batch, *args = sess.run(input_getBatch)
+                    labels_epoch.append(lbl_batch)
                     # Built feed dict based on list of labels
                     feed_dict = {input_lbl: np.expand_dims(lbl_batch[:,i],1) for i,input_lbl in enumerate(input_lbls)}
                     feed_dict.update({input_images:    image_batch})
                     feed_dict.update({tf_is_training: True})
 
                     # Perform training step
-                    _, loss_out, lbl_batch_predict = sess.run(
-                        [optimizer_op, loss, output_logits],
+                    _, loss_Lgm, Lcls, Llkd, lbl_batch_predict, LGM_distances, lgm_space_train = sess.run(
+                        [optimizer_op, loss, loss_func.Lcls, loss_func.Llkd, output_logits, loss_func.D, LGM_space],
                         feed_dict=feed_dict)
-                    loss_train += loss_out
+                    Lgm_train += loss_Lgm
+                    Lcls_train += Lcls
+                    Llkd_train += loss_func.lmbda*Llkd
+                    lgm_space_trains.append(lgm_space_train)
                     # Store results from training step
                     # Calculate confusion matrix for all outputs
                     for i,CMat in enumerate(CMatsTrain):
                         lbl_idx = lbl_batch[:,i]
-                        lbl_idx_predict = np.squeeze(np.argmax(lbl_batch_predict[i], axis=3))
+                        lbl_idx_predict = np.squeeze(np.argmin(LGM_distances,axis=-1))
+                        # lbl_idx_predict = np.squeeze(np.argmax(lbl_batch_predict[i], axis=3))
                         CMat.Append(lbl_idx,lbl_idx_predict)
                     # Show progress in stdout
-                    self._show_progress('TR', epoch_n, batchCounter, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, loss_out, CMatsTrain)
-
+                    # self._show_progress('TR', epoch_n, batchCounter, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, loss_Lgm, CMatsTrain)
+                    self._show_progress2('TR', epoch_n, batchCounter, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, loss_Lgm, Lcls, loss_func.lmbda*Llkd, CMatsTrain[0].accuracy(), np.diag(LGM_distances.squeeze()[:,lbl_batch.squeeze()]).max())
+                print('\n')
+                self._show_progress2('TR', epoch_n, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, Lgm_train/batchCounter, Lcls_train/batchCounter, Llkd_train/batchCounter, CMatsTrain[0].accuracy())
                 # Print accumulated confusion matricx for each output
                 print('\n')
                 for i, CMat in enumerate(CMatsTrain):
                     CMat.Save(os.path.join(self.dir_logs, 'ConfMat_Train_output' + '{:02d}'.format(i) + '.csv'),'csv')
                     print(CMat)
+
+                centers, log_covars = sess.run([loss_func.centers, loss_func.log_covars])
                 
                 # Create fill in summaries for training log
                 feed_dict_summary = {tf_acc: CMat.accuracy() for tf_acc, CMat in zip(tf_accuracies,CMatsTrain)}
                 feed_dict_summary.update({tf_rec: [0 if np.isnan(x) else x for x in CMat.recall()] for tf_rec, CMat in zip(tf_recalls,CMatsTrain)})
                 feed_dict_summary.update({tf_pre: [0 if np.isnan(x) else x for x in CMat.precision()] for tf_pre, CMat in zip(tf_precisions,CMatsTrain)})
                 feed_dict_summary.update({tf_f1:  [0 if np.isnan(x) else x for x in CMat.fScore(beta=1)] for tf_f1, CMat in zip(tf_F1s,CMatsTrain)})
-                loss_train = loss_train/batchCounter
-                feed_dict_summary.update({tf_loss: loss_train})
+                feed_dict_summary.update({tf_loss_Lgm: Lgm_train/batchCounter})
+                feed_dict_summary.update({tf_loss_Lcls: Lcls_train/batchCounter})
+                feed_dict_summary.update({tf_loss_Llkd: Llkd_train/batchCounter})
+                feed_dict_summary.update({tf_cmat_summary: np.expand_dims(np.expand_dims(CMatsTrain[0].confMat / np.maximum(CMatsTrain[0].predictedCounts(),1),axis=-1), axis=0)})
+
+                lgm_space_trains = np.concatenate(lgm_space_trains)
+                labels_epoch = np.concatenate(labels_epoch)
+                feed_dict_summary.update({tf_feat_summary: loss_func.figure_to_array(loss_func.plot_feat_vec(lgm_space_trains, labels_epoch))[:,:,:,0:3]})
+                
+                min_vals = lgm_space_trains.min(axis=0).squeeze()
+                max_vals = lgm_space_trains.max(axis=0).squeeze()
+                feed_dict_summary.update({tf_distributions_summary: loss_func.figure_to_array(loss_func.plot_distributions(centers, log_covars, min_vals=min_vals, max_vals=max_vals))[:,:,:,0:3]})
+                feed_dict_summary.update({tf_distributions_colored_summary: loss_func.figure_to_array(loss_func.plot_distributions_colored(centers, log_covars, min_vals=min_vals, max_vals=max_vals))[:,:,:,0:3]})
+                feed_dict_summary.update({tf_classifications_summary: loss_func.figure_to_array(loss_func.plot_classifications(centers, log_covars, min_vals=min_vals, max_vals=max_vals))[:,:,:,0:3]})
+
+                feed_dict_summary.update({tf_centers_summary: centers})
+                feed_dict_summary.update({tf_log_covars_summary: log_covars})
+
                 summaries = sess.run(tf_summary_op, 
                                     feed_dict=feed_dict_summary)
                 # Write summaries to training log
@@ -717,30 +812,42 @@ class ResNet(object):
                     # Reset confusion matrices and accumulated loss
                     for CMat in CMatsVal:
                         CMat.Reset()
-                    loss_val = 0
+                    Lgm_val = 0
+                    Lcls_val = 0
+                    Llkd_val = 0
+                    lgm_space_vals = []
+                    labels_epoch = []
                     # Loop through all batches of examples
                     for batchCounter in range(math.ceil(float(dataset_sizes[1])/float(self.batch_size))):
                         # Grab an image and label batch from the validation set
                         image_batch, lbl_batch, *args = sess.run(tf_input_getBatch_val)
+                        labels_epoch.append(lbl_batch)
                         # Built feed dict based on list of labels
                         feed_dict = {input_lbl: np.expand_dims(lbl_batch[:,i],1) for i,input_lbl in enumerate(input_lbls)}
                         feed_dict.update({input_images:    image_batch})
                         feed_dict.update({tf_is_training: False})
 
                         # Perform evaluation step
-                        lbl_batch_predict, loss_out = sess.run(
-                                                            [output_logits, loss],
+                        lbl_batch_predict, loss_Lgm, Lcls, Llkd, LGM_distances, lgm_space_val = sess.run(
+                                                            [output_logits, loss, loss_func.Lcls, loss_func.Llkd, loss_func.D, LGM_space],
                                                             feed_dict=feed_dict
                                                         )
                         # Store results from evaluation step
                         # Calculate confusion matrix for all outputs
                         for i,CMat in enumerate(CMatsVal):
                             lbl_idx = lbl_batch[:,i] #np.squeeze(np.argmax(lbl_batch, axis=1))
-                            lbl_idx_predict = np.squeeze(np.argmax(lbl_batch_predict[i], axis=3))
+                            # lbl_idx_predict = np.squeeze(np.argmax(lbl_batch_predict[i], axis=3))
+                            lbl_idx_predict = np.squeeze(np.argmin(LGM_distances,axis=-1))
                             CMat.Append(lbl_idx,lbl_idx_predict)
-                        loss_val += loss_out
+                        Lgm_val += loss_Lgm
+                        Lcls_val += Lcls
+                        Llkd_val += loss_func.lmbda*Llkd
+                        lgm_space_vals.append(lgm_space_val)
                         # Show progress in stdout
-                        self._show_progress('VA', epoch_n, batchCounter, math.ceil(float(dataset_sizes[1])/float(self.batch_size))-1, loss_out, CMatsVal)
+                        # self._show_progress('VA', epoch_n, batchCounter, math.ceil(float(dataset_sizes[1])/float(self.batch_size))-1, loss_Lgm, CMatsVal)
+                        self._show_progress2('VA', epoch_n, batchCounter, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, loss_Lgm, Lcls/self.batch_size, loss_func.lmbda*Llkd/self.batch_size, CMatsVal[0].accuracy(), np.diag(LGM_distances.squeeze()[:,lbl_batch.squeeze()]).max())
+                    print('\n')
+                    self._show_progress2('VA', epoch_n, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, Lgm_val/batchCounter, Lcls_val/batchCounter, Llkd_val/batchCounter, CMatsVal[0].accuracy())
                     
                     # Print confusion matrix for each output
                     print('\n')
@@ -748,13 +855,34 @@ class ResNet(object):
                         CMat.Save(os.path.join(self.dir_logs, 'ConfMat_Val_output' + '{:02d}'.format(i) + '.csv'),'csv') # Save confusion matrix
                         print(CMat)
 
+                    centers, log_covars = sess.run([loss_func.centers, loss_func.log_covars])
+
                     # Create fill in summaries for validation log
                     feed_dict_summary = {tf_acc: CMat.accuracy() for tf_acc, CMat in zip(tf_accuracies,CMatsVal)}
                     feed_dict_summary.update({tf_rec: [0 if np.isnan(x) else x for x in CMat.recall()] for tf_rec, CMat in zip(tf_recalls,CMatsVal)})
                     feed_dict_summary.update({tf_pre: [0 if np.isnan(x) else x for x in CMat.precision()] for tf_pre, CMat in zip(tf_precisions,CMatsVal)})
                     feed_dict_summary.update({tf_f1:  [0 if np.isnan(x) else x for x in CMat.fScore(beta=1)] for tf_f1, CMat in zip(tf_F1s,CMatsVal)})
-                    loss_val = loss_val/batchCounter
-                    feed_dict_summary.update({tf_loss: loss_val})
+                    # Lgm_val = Lgm_val/batchCounter
+                    # feed_dict_summary.update({tf_loss: Lgm_val})
+                    feed_dict_summary.update({tf_loss_Lgm: Lgm_val/batchCounter})
+                    feed_dict_summary.update({tf_loss_Lcls: Lcls_val/batchCounter})
+                    feed_dict_summary.update({tf_loss_Llkd: Llkd_val/batchCounter})
+                    feed_dict_summary.update({tf_cmat_summary: np.expand_dims(np.expand_dims(CMatsVal[0].confMat / np.maximum(CMatsVal[0].predictedCounts(),1), axis=-1), axis=0)})
+
+                    lgm_space_vals = np.concatenate(lgm_space_vals)
+                    labels_epoch = np.concatenate(labels_epoch)
+                    feed_dict_summary.update({tf_feat_summary: loss_func.figure_to_array(loss_func.plot_feat_vec(lgm_space_vals, labels_epoch))[:,:,:,0:3]})
+
+                    min_vals = lgm_space_vals.min(axis=0).squeeze()
+                    max_vals = lgm_space_vals.max(axis=0).squeeze()
+
+                    feed_dict_summary.update({tf_distributions_summary: loss_func.figure_to_array(loss_func.plot_distributions(centers, log_covars, min_vals=min_vals, max_vals=max_vals))[:,:,:,0:3]})
+                    feed_dict_summary.update({tf_distributions_colored_summary: loss_func.figure_to_array(loss_func.plot_distributions_colored(centers, log_covars, min_vals=min_vals, max_vals=max_vals))[:,:,:,0:3]})
+                    feed_dict_summary.update({tf_classifications_summary: loss_func.figure_to_array(loss_func.plot_classifications(centers, log_covars, min_vals=min_vals, max_vals=max_vals))[:,:,:,0:3]})
+
+                    feed_dict_summary.update({tf_centers_summary: centers})
+                    feed_dict_summary.update({tf_log_covars_summary: log_covars})
+
                     summaries = sess.run(tf_summary_op, 
                                         feed_dict=feed_dict_summary)
                     # Write summaries to validation log
