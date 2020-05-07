@@ -405,7 +405,7 @@ class Dataset(object):
                 if (shard_val == None) or (len(shard_val) < 0):
                     tf_dataset_val = None
                 else:
-                    dataset_filenames_val = dataset_filenames[shard_val]
+                    dataset_filenames_val = dataset_filenames[shard_val[0]]
                     tf_dataset_val = tf.data.TFRecordDataset(dataset_filenames_val)
                     print('Validation shard:')
                     print(dataset_filenames_val)
