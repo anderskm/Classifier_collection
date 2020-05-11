@@ -605,10 +605,12 @@ class ResNet(object):
         # [filter_height, filter_width, in_channels, out_channels]
         # tf.nn.conv2d()
         # tf.nn.relu()
-        num_features = 2
+        num_features = 1024
         with tf.name_scope('LGM_space'):
-            LGM_weights = tf.Variable(initial_value=tf.random_normal_initializer(mean=0.0, stddev=0.0001)(shape=(1,1,endpoints['global_pool'].get_shape().as_list()[-1],2)))
-            LGM_biases = tf.Variable(initial_value=tf.random_normal_initializer(mean=0.0, stddev=1.0)(shape=(1,1,1,2)))
+            LGM_weights = tf.Variable(initial_value=tf.random_normal_initializer(mean=0.0, stddev=0.0001)(shape=(1,1,endpoints['global_pool'].get_shape().as_list()[-1],num_features)))
+            # LGM_weights = tf.Variable(initial_value=tf.initializers.he_normal()(shape=(1,1,endpoints['global_pool'].get_shape().as_list()[-1],num_features)))
+            LGM_biases = tf.Variable(initial_value=tf.random_normal_initializer(mean=0.0, stddev=1.0)(shape=(1,1,1,num_features)))
+            # LGM_biases = tf.Variable(initial_value=tf.initializers.he_normal()(shape=(1,1,1,num_features)))
             LGM_space = tf.nn.conv2d(endpoints['global_pool'], LGM_weights, strides=[1,1,1,1], padding='SAME')
             LGM_space = LGM_space + LGM_biases
         # with slim.arg_scope(resnet_v1.resnet_arg_scope(batch_norm_decay=0.95)):
