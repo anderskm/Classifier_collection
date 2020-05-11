@@ -62,7 +62,6 @@ class LGM:
 
     def plot_feat_vec(self, feat_vec, labels):
         
-        
         figure = plt.figure(figsize=(8,8))
         figure.tight_layout(pad=0)
         for i in range(self.num_classes):
@@ -74,7 +73,7 @@ class LGM:
 
         return figure
 
-    def plot_distributions(self, centers, log_covars, class_names=None, min_vals=None, max_vals=None):
+    def plot_distributions(self, centers, log_covars, class_names=None, min_vals=None, max_vals=None, dims=[0,1]):
 
         if class_names is None:
             class_names = self.class_names
@@ -84,12 +83,17 @@ class LGM:
 
         covars = np.exp(log_covars)
 
-        P, min_vals, max_vals = self._P_map(centers, covars, min_vals=min_vals, max_vals=max_vals)
+        if min_vals is None:
+            min_vals = (centers - 3*covars).min(axis=1)
+        if max_vals is None:
+            max_vals = (centers + 3*covars).max(axis=1)
 
-        plt.imshow(P.max(axis=2), origin='lower', extent=(min_vals[0], max_vals[0],min_vals[1],max_vals[1]), cmap=plt.get_cmap('gray'))
+        P, min_vals, max_vals = self._P_map(centers[dims,:], covars[dims,:], min_vals=min_vals[dims], max_vals=max_vals[dims])
+
+        plt.imshow(P.max(axis=2), origin='lower', extent=(min_vals[0], max_vals[0], min_vals[1],max_vals[1]), cmap=plt.get_cmap('gray'))
 
         for i, class_name in zip(range(self.num_classes), class_names):
-            plt.text(centers[0,i], centers[1,i], class_name, horizontalalignment='center', verticalalignment='center')
+            plt.text(centers[dims[0],i], centers[dims[1],i], class_name, horizontalalignment='center', verticalalignment='center')
 
         axes = plt.gca()
         axes.axis('equal')
@@ -97,7 +101,7 @@ class LGM:
         return figure
 
 
-    def plot_distributions_colored(self, centers, log_covars, class_names=None, min_vals=None, max_vals=None):
+    def plot_distributions_colored(self, centers, log_covars, class_names=None, min_vals=None, max_vals=None, dims=[0,1]):
 
         if class_names is None:
             class_names = self.class_names
@@ -107,21 +111,25 @@ class LGM:
 
         covars = np.exp(log_covars)
 
-        P, min_vals, max_vals = self._P_map(centers, covars, min_vals=min_vals, max_vals=max_vals)
+        if min_vals is None:
+            min_vals = (centers - 3*covars).min(axis=1)
+        if max_vals is None:
+            max_vals = (centers + 3*covars).max(axis=1)
+
+        P, min_vals, max_vals = self._P_map(centers[dims,:], covars[dims,:], min_vals=min_vals[dims], max_vals=max_vals[dims])
 
         P_max = P.max(axis=2)
         class_idx = np.argmax(P, axis=2)
 
-        plt.imshow(np.expand_dims(P_max/P_max.max(), axis=-1)*np.asarray(self.class_colors)[class_idx], origin='lower', extent=(min_vals[0], max_vals[0],min_vals[1],max_vals[1]))
+        plt.imshow(np.expand_dims(P_max/P_max.max(), axis=-1)*np.asarray(self.class_colors)[class_idx], origin='lower', extent=(min_vals[0], max_vals[0], min_vals[1], max_vals[1]))
 
         for i, class_name in zip(range(self.num_classes), class_names):
-            plt.text(centers[0,i], centers[1,i], class_name, horizontalalignment='center', verticalalignment='center')
+            plt.text(centers[dims[0],i], centers[dims[1],i], class_name, horizontalalignment='center', verticalalignment='center')
 
         return figure
 
-    def plot_classifications(self, centers, log_covars, class_names=None, min_vals=None, max_vals=None):
-
-        
+    def plot_classifications(self, centers, log_covars, class_names=None, min_vals=None, max_vals=None, dims=[0,1]):
+      
         if class_names is None:
             class_names = self.class_names
 
@@ -130,7 +138,12 @@ class LGM:
 
         covars = np.exp(log_covars)
 
-        P, min_vals, max_vals = self._P_map(centers, covars, min_vals=min_vals, max_vals=max_vals)
+        if min_vals is None:
+            min_vals = (centers - 3*covars).min(axis=1)
+        if max_vals is None:
+            max_vals = (centers + 3*covars).max(axis=1)
+
+        P, min_vals, max_vals = self._P_map(centers[dims,:], covars[dims,:], min_vals=min_vals[dims], max_vals=max_vals[dims])
 
         class_idx = np.argmax(P, axis=2)
 
