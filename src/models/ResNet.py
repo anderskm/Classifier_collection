@@ -385,7 +385,7 @@ class ResNet(object):
         # )
         return loss
         
-    def _create_optimizer(self, loss, variables_to_optimize=None, learning_rate=0.001):
+    def _create_optimizer(self, loss, variables_to_optimize=None, learning_rate=0.001, momentum=0.9):
         """ Create optimizer for the network
         Args:
     
@@ -404,9 +404,11 @@ class ResNet(object):
         # print('Tensors to optimize: ')
         # print([T.name for T in model_vars_train])
 
-        optimizer = tf.train.AdamOptimizer()
+        # optimizer = tf.train.AdamOptimizer()
         # TODO: https://github.com/ibab/tensorflow-wavenet/issues/267#issuecomment-302799152
         # optimizer = tf.train.GradientDescentOptimizer(learning_rate)
+
+        optimizer = tf.train.MomentumOptimizer(learning_rate=learning_rate, momentum=momentum, use_nesterov=True)
 
         optimizer_op = slim.learning.create_train_op(loss, optimizer, variables_to_train=model_vars_train)
         # optimizer_op = optimizer.minimize(loss, var_list = model_vars_train)
