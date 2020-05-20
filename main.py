@@ -25,7 +25,8 @@ from src.models.VGG import VGG
 from src.models.ResNet import ResNet
 from src.visualization import visualize
 
-DEVICE_ID_LIST = GPUtil.getFirstAvailable(attempts = 720, interval = 120)
+DEVICE_ID_LIST = GPUtil.getFirstAvailable(attempts = 720, interval = 1, maxMemory=1.0, maxLoad=1.0)
+GPUtil.showUtilization()
 os.environ["CUDA_VISIBLE_DEVICES"] = str(DEVICE_ID_LIST[0])
 
 """parsing and configuration"""
@@ -86,7 +87,9 @@ def parse_args():
                                  'okra',
                                  'okra_abnormal',
                                  'okra_next',
-                                 'okra_d0'],
+                                 'okra_d0',
+                                 'OSD_Ra1',
+                                 'OSD_Ra1W'],
                         #required = True,
                         help='The name of dataset')  
     

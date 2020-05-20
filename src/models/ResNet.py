@@ -43,6 +43,8 @@ import src.data.datasets.DS_Barley as DS_Barley
 import src.data.datasets.DS_Barley_Abnormal as DS_Barley_Abnormal
 import src.data.datasets.DS_Barley_D0 as DS_Barley_D0
 import src.data.datasets.DS_Barley_Next as DS_Barley_Next
+import src.data.datasets.DS_OSD_Ra1 as DS_OSD_Ra1
+import src.data.datasets.DS_OSD_Ra1W as DS_OSD_Ra1W
 # import src.data.datasets.DS_Seeds_D0 as DS_Seeds_D0
 # import src.data.datasets.DS_Barley_Next as DS_Barley_Next
 # import src.data.datasets.DS_Barley_Next_Stratified as DS_Barley_Next_Stratified
@@ -257,6 +259,14 @@ class ResNet(object):
             self.lbls_dim = 2
             self.image_dims = [256, 256, 19]
             self.fc_dims = [8,8]
+        elif dataset == 'OSD_Ra1':
+            # self.lbls_dim = 2
+            self.image_dims = [None, None, 19]
+            # self.fc_dims = [8,8]
+        elif dataset == 'OSD_Ra1W':
+            # self.lbls_dim = 2
+            self.image_dims = [None, None, 19]
+            # self.fc_dims = [8,8]
         else:
             raise ValueError('Selected Dataset is not supported by model: ' + self.model)
 
@@ -501,6 +511,10 @@ class ResNet(object):
             DS = DS_Okra_next.Dataset()
         elif (self.dataset == 'okra_d0'):
             DS = DS_Okra_D0.Dataset()
+        elif (self.dataset == 'OSD_Ra1'):
+            DS = DS_OSD_Ra1.Dataset()
+        elif (self.dataset == 'OSD_Ra1W'):
+            DS = DS_OSD_Ra1W.Dataset()
         tf_dataset_list, dataset_sizes = DS.get_dataset_list(data_source = args_train.data_source,
                                                             data_folder = args_train.data_folder,
                                                             shuffle_before_split=args_train.shuffle_before_split,
@@ -533,7 +547,8 @@ class ResNet(object):
             tf_dataset_train = tf_dataset_train.shuffle(buffer_size = 10000, seed = None)
             tf_dataset_train = tf_dataset_train.map(DS._decode_from_TFexample)
             tf_dataset_train = tf_dataset_train.map(preprocessing.pipe)
-            tf_dataset_train = tf_dataset_train.batch(batch_size = self.batch_size, drop_remainder=False)
+            # tf_dataset_train = tf_dataset_train.batch(batch_size = self.batch_size, drop_remainder=False)
+            tf_dataset_train = tf_dataset_train.padded_batch(batch_size = self.batch_size, padded_shapes=((None, None, 19),(None,),(),(),(),(),()), drop_remainder=False)
             tf_dataset_train = tf_dataset_train.repeat(count=-1) # -1 --> repeat indefinitely
             # tf_dataset_train = tf_dataset_train.prefetch(buffer_size=3)
             tf_dataset_train_iterator = tf_dataset_train.make_one_shot_iterator()
@@ -553,7 +568,8 @@ class ResNet(object):
             if (tf_dataset_val is not None):
                 tf_dataset_val = tf_dataset_val.map(DS._decode_from_TFexample)
                 tf_dataset_val = tf_dataset_val.map(preprocessing_eval.pipe)
-                tf_dataset_val = tf_dataset_val.batch(batch_size = self.batch_size, drop_remainder=False)
+                # tf_dataset_val = tf_dataset_val.batch(batch_size = self.batch_size, drop_remainder=False)
+                tf_dataset_val = tf_dataset_val.padded_batch(batch_size = self.batch_size, padded_shapes=((None, None, 19),(None,),(),(),(),(),()), drop_remainder=False)
                 tf_dataset_val = tf_dataset_val.repeat(count=-1) # -1 --> repeat indefinitely
                 # tf_dataset_val = tf_dataset_val.prefetch(buffer_size=3)
                 tf_dataset_val_iterator = tf_dataset_val.make_one_shot_iterator()
@@ -934,6 +950,10 @@ class ResNet(object):
             DS = DS_Okra_next.Dataset()
         elif (self.dataset == 'okra_d0'):
             DS = DS_Okra_D0.Dataset()
+        elif (self.dataset == 'OSD_Ra1'):
+            DS = DS_OSD_Ra1.Dataset()
+        elif (self.dataset == 'OSD_Ra1W'):
+            DS = DS_OSD_Ra1W.Dataset()
         tf_dataset_list, dataset_sizes = DS.get_dataset_list(data_source = args_evaluate.data_source,
                                                             data_folder = args_evaluate.data_folder,
                                                             data_file = args_evaluate.data_file,
@@ -962,7 +982,8 @@ class ResNet(object):
             if (tf_dataset_test is not None):
                 tf_dataset_test = tf_dataset_test.map(DS._decode_from_TFexample)
                 tf_dataset_test = tf_dataset_test.map(preprocessing.pipe)
-                tf_dataset_test = tf_dataset_test.batch(batch_size = args_evaluate.batch_size, drop_remainder=False)
+                # tf_dataset_test = tf_dataset_test.batch(batch_size = args_evaluate.batch_size, drop_remainder=False)
+                tf_dataset_test = tf_dataset_test.padded_batch(batch_size = args_evaluate.batch_size, padded_shapes=((None, None, 19),(None,),(),(),(),(),()), drop_remainder=False)
                 tf_dataset_test = tf_dataset_test.prefetch(buffer_size=3)
                 # tf_dataset_test_iterator = tf_dataset_test.make_initializable_iterator()
                 tf_dataset_test_iterator = tf_dataset_test.make_one_shot_iterator()
