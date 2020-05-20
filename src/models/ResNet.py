@@ -615,36 +615,24 @@ class ResNet(object):
         
 
         # # TODO: Experimental. LGM loss
-        # loss = tf.constant(0, dtype=tf.float32)
-        # num_features = endpoints['global_pool'].get_shape().as_list()[-1]
-        # tf.Variable(initial_value=tf.random_normal_initializer(mean=0.0, stddev=1.0)(shape=(1,1,endpoints['global_pool'].get_shape().as_list()[-1],2)))
-        # [filter_height, filter_width, in_channels, out_channels]
-        # tf.nn.conv2d()
-        # tf.nn.relu()
-        num_features = 1024
-        with tf.name_scope('LGM_space'):
-            LGM_weights = tf.Variable(initial_value=tf.random_normal_initializer(mean=0.0, stddev=0.0001)(shape=(1,1,endpoints['global_pool'].get_shape().as_list()[-1],num_features)))
-            # LGM_weights = tf.Variable(initial_value=tf.initializers.he_normal()(shape=(1,1,endpoints['global_pool'].get_shape().as_list()[-1],num_features)))
-            LGM_biases = tf.Variable(initial_value=tf.random_normal_initializer(mean=0.0, stddev=1.0)(shape=(1,1,1,num_features)))
-            # LGM_biases = tf.Variable(initial_value=tf.initializers.he_normal()(shape=(1,1,1,num_features)))
-            LGM_space = tf.nn.conv2d(endpoints['global_pool'], LGM_weights, strides=[1,1,1,1], padding='SAME')
-            LGM_space = LGM_space + LGM_biases
-        # with slim.arg_scope(resnet_v1.resnet_arg_scope(batch_norm_decay=0.95)):
-            # tf_gmspace = slim.conv2d(endpoints['global_pool'], num_features, [1, 1], activation_fn=None, # tf.nn.relu
-            #                           normalizer_fn=None, scope='GMspace', padding='VALID')
+
+        # num_features = 2
+        # with tf.name_scope('LGM_space'):
+        #     LGM_weights = tf.Variable(initial_value=tf.random_normal_initializer(mean=0.0, stddev=0.0001)(shape=(1,1,endpoints['global_pool'].get_shape().as_list()[-1],num_features)))
+        #     # LGM_weights = tf.Variable(initial_value=tf.initializers.he_normal()(shape=(1,1,endpoints['global_pool'].get_shape().as_list()[-1],num_features)))
+        #     LGM_biases = tf.Variable(initial_value=tf.random_normal_initializer(mean=0.0, stddev=1.0)(shape=(1,1,1,num_features)))
+        #     # LGM_biases = tf.Variable(initial_value=tf.initializers.he_normal()(shape=(1,1,1,num_features)))
+        #     LGM_space = tf.nn.conv2d(endpoints['global_pool'], LGM_weights, strides=[1,1,1,1], padding='SAME')
+        #     LGM_space = LGM_space + LGM_biases
+
+
         loss = tf.constant(0, dtype=tf.float32)
         for label, N_classes in zip(input_lbls, num_classes):
-            loss_func = src.losses.LGM.LGM(num_feats=num_features, num_classes=N_classes, lmbda=0.1, alpha=1.0)
-            loss += loss_func.apply(LGM_space, label)
-            # loss += loss_func.apply(endpoints['global_pool'], label)
-            # loss += loss_func.apply(tf_gmspace, label)
-            # loss += tf.nn.softmax_cross_entropy_with_logits_v2(
-            #             labels=lbl,
-            #             logits=logit,
-            #             name = 'Loss')
+            with tf.name_scope('LGM'):
+                loss_func = src.losses.LGM.LGM(input_vector=endpoints['global_pool'], num_classes=N_classes, lmbda=0.1, alpha=1.0)
+                loss += loss_func.apply(None, label)
+                # loss += loss_func.apply(LGM_space, label)
         loss = tf.reduce_mean(loss)
-        # model_vars_not_restored.append(tf_gmspace)
-
         
 
         # Setup optimizer
@@ -769,7 +757,7 @@ class ResNet(object):
 
                     # Perform training step
                     _, loss_Lgm, Lcls, Llkd, lbl_batch_predict, LGM_distances, lgm_space_train = sess.run(
-                        [optimizer_op, loss, loss_func.Lcls, loss_func.Llkd, output_logits, loss_func.D, LGM_space],
+                        [optimizer_op, loss, loss_func.Lcls, loss_func.Llkd, output_logits, loss_func.D, loss_func._LGM_space],
                         feed_dict=feed_dict)
                     Lgm_train += loss_Lgm
                     Lcls_train += Lcls
@@ -849,7 +837,7 @@ class ResNet(object):
 
                         # Perform evaluation step
                         lbl_batch_predict, loss_Lgm, Lcls, Llkd, LGM_distances, lgm_space_val = sess.run(
-                                                            [output_logits, loss, loss_func.Lcls, loss_func.Llkd, loss_func.D, LGM_space],
+                                                            [output_logits, loss, loss_func.Lcls, loss_func.Llkd, loss_func.D, loss_func._LGM_space],
                                                             feed_dict=feed_dict
                                                         )
                         # Store results from evaluation step
@@ -1006,8 +994,14 @@ class ResNet(object):
             output_logits = []
             for i, N_classes in enumerate(num_classes):
                 input_lbls.append(graph.get_tensor_by_name('input_lbls' + str(i) + ':0'))
-                output_logits.append(graph.get_tensor_by_name('resnet_v1_50/logits' + str(i) + '/BiasAdd:0'))
-                # output_logits.append(graph.get_tensor_by_name('logits' + str(i) + ':0'))
+                # output_logits.append(graph.get_tensor_by_name('resnet_v1_50/logits' + str(i) + '/BiasAdd:0'))
+                
+            tf_lgm_space = graph.get_tensor_by_name('LGM/LGM_Embedded_space/add:0')
+
+            tf_centers = graph.get_tensor_by_name('LGM/LGM_Distributions/centers:0')
+            centers = tf_centers.eval()
+            tf_log_covars = graph.get_tensor_by_name('LGM/LGM_Distributions/log_covars:0')
+            log_covars = tf_log_covars.eval()
             
             fob_results_list = []
             datetime_string = datetime.datetime.now().strftime('%Y%m%dT%H%M%S')
@@ -1026,6 +1020,10 @@ class ResNet(object):
 
             # tf_session.run(tf_dataset_test_iterator.initializer)
 
+            P_list = []
+            mahal_dist_list = []
+            label_list = []
+
             # Loop through all batches of examples
             for batchCounter in range(math.ceil(float(dataset_sizes[2])/float(args_evaluate.batch_size))):
             # while 1:
@@ -1037,31 +1035,56 @@ class ResNet(object):
                 feed_dict = {input_images:    image_batch}
                 feed_dict.update({tf_is_training: False})
                 # Perform evaluation step
-                lbl_batch_predict = tf_session.run([output_logits],
+                # lbl_batch_predict = tf_session.run([output_logits],
+                #                                     feed_dict=feed_dict
+                #                                 )
+                lgm_space = tf_session.run([tf_lgm_space],
                                                     feed_dict=feed_dict
                                                 )
-                # Store results from evaluation step
-                # Calculate confusion matrix for all outputs
-                # lbl_strings = ['' for x in CMatsTest]
-                for i,CMat in enumerate(CMatsTest):
-                    lbl_idx = lbl_batch[:,i]
-                    lbl_idx_predict = np.squeeze(np.argmax(lbl_batch_predict[i][0], axis=3))
-                    CMat.Append(lbl_idx,lbl_idx_predict)
-                    # lbl_string[] += ','+str(lbl_idx)+','+str(lbl_idx_predict)
+
+                X = np.expand_dims(lgm_space[0], axis=-1)
+                covars = np.exp(log_covars)
+                mahal_dist = np.sqrt(np.sum(np.multiply(np.divide(X-centers, covars), X-centers), axis=-2))
+                D = 0.5*np.sum(np.multiply(np.divide(X-centers, covars), X-centers), axis=-2)
+                P = 0.5*np.sum(log_covars, axis=0)+np.squeeze(D)
+
+                mahal_dist_list.append(mahal_dist)
+                label_list.append(np.squeeze(lbl_batch))
+                P_list.append(P)
                 
-                # Loop over outputs
-                for fob, lbl_predict in zip(fob_results_list,lbl_batch_predict):
-                    # Loop over batch elements
-                    for origin, lbl, lbl_t in zip(origins, lbl_predict[0], lbl_batch):
-                        out_string = origin.decode("utf-8") + ',' + '{:d}'.format(lbl_t[0]) + ',' + '{:d}'.format(np.squeeze(np.argmax(lbl))) + ',' + ','.join(['{:f}'.format(l) for l in np.squeeze(lbl)]) + '\n'
-                        fob.write(out_string)
+                # # Store results from evaluation step
+                # # Calculate confusion matrix for all outputs
+                # # lbl_strings = ['' for x in CMatsTest]
+                # for i,CMat in enumerate(CMatsTest):
+                #     lbl_idx = lbl_batch[:,i]
+                #     lbl_idx_predict = np.argmin(P, axis=1)
+                #     # lbl_idx_predict = np.squeeze(np.argmax(lbl_batch_predict[i][0], axis=3))
+                #     CMat.Append(lbl_idx,lbl_idx_predict)
+                #     # lbl_string[] += ','+str(lbl_idx)+','+str(lbl_idx_predict)
                 
-                # Show progress in stdout
-                # batchCounter = 0
-                self._show_progress('TE', 0, batchCounter, math.ceil(float(dataset_sizes[2])/float(args_evaluate.batch_size))-1, np.nan, CMatsTest)
+                # # Loop over outputs
+                # for fob, lbl_predict in zip(fob_results_list,lbl_batch_predict):
+                #     # Loop over batch elements
+                #     for origin, lbl, lbl_t in zip(origins, lbl_predict[0], lbl_batch):
+                #         out_string = origin.decode("utf-8") + ',' + '{:d}'.format(lbl_t[0]) + ',' + '{:d}'.format(np.squeeze(np.argmax(lbl))) + ',' + ','.join(['{:f}'.format(l) for l in np.squeeze(lbl)]) + '\n'
+                #         fob.write(out_string)
+                
+                # # Show progress in stdout
+                # # batchCounter = 0
+                # self._show_progress('TE', 0, batchCounter, math.ceil(float(dataset_sizes[2])/float(args_evaluate.batch_size))-1, np.nan, CMatsTest)
             # except:
                 # pass
             # fob_results_list.close()
+            P = np.concatenate(P_list)
+            mahal_dists = np.concatenate(mahal_dist_list).squeeze()
+            labels = np.concatenate(label_list)
+            prb = np.asarray([p[l] for p,l in zip(P, labels)])
+
+            fob = open(os.path.join(output_folder, 'mahal_dists__' + self.dataset + '.csv'), 'w+')
+            for mahal_dist, label in zip(mahal_dists, labels):
+                out_string = str(label) + ',' + ','.join([str(m) for m in mahal_dist]) + '\n'
+                fob.write(out_string)
+
             # Print confusion matrix for each output
             print('\n')
             for i, CMat in enumerate(CMatsTest):

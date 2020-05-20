@@ -2,13 +2,13 @@ import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 
-import src.losses.LGM
+import LGM
 
-NUM_FEATS = 2
+NUM_FEATS = 1024
 NUM_CLASSES = 5
 BATCH_SIZE = 10
 
-loss_func = src.losses.LGM.LGM(num_feats=NUM_FEATS, num_classes=NUM_CLASSES, lmbda=0.1, alpha=0.3)
+loss_func = LGM.LGM(num_feats=NUM_FEATS, num_classes=NUM_CLASSES, lmbda=0.1, alpha=0.3)
 
 feat_vec = tf.random_uniform([BATCH_SIZE, 1, 1, NUM_FEATS], minval=-1, maxval=1, dtype=tf.float32)
 # Create random true labels
