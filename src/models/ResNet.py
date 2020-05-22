@@ -1000,8 +1000,22 @@ class ResNet(object):
 
             tf_centers = graph.get_tensor_by_name('LGM/LGM_Distributions/centers:0')
             centers = tf_centers.eval()
+            fob_centers = open(os.path.join(output_folder, 'centers.csv'), 'w+')
+            for center in centers.transpose():
+                out_string = ','.join([str(c) for c in center]) + '\n'
+                fob_centers.write(out_string)
+            fob_centers.close()
+
+            
             tf_log_covars = graph.get_tensor_by_name('LGM/LGM_Distributions/log_covars:0')
             log_covars = tf_log_covars.eval()
+            fob_log_covars = open(os.path.join(output_folder, 'log_covars.csv'), 'w+')
+            for log_covar in log_covars.transpose():
+                out_string = ','.join([str(l) for l in log_covar]) + '\n'
+                fob_log_covars.write(out_string)
+            fob_log_covars.close()
+
+
             
             fob_results_list = []
             datetime_string = datetime.datetime.now().strftime('%Y%m%dT%H%M%S')
@@ -1023,6 +1037,10 @@ class ResNet(object):
             P_list = []
             mahal_dist_list = []
             label_list = []
+
+            fob_mahal = open(os.path.join(output_folder, 'mahal_dists__' + self.dataset + '.csv'), 'w+')
+
+            fob_lgm_space = open(os.path.join(output_folder, 'LGM_space__' + self.dataset + '.csv'), 'w+')
 
             # Loop through all batches of examples
             for batchCounter in range(math.ceil(float(dataset_sizes[2])/float(args_evaluate.batch_size))):
@@ -1051,6 +1069,14 @@ class ResNet(object):
                 mahal_dist_list.append(mahal_dist)
                 label_list.append(np.squeeze(lbl_batch))
                 P_list.append(P)
+
+                for origin, label, mahal in zip(origins, np.squeeze(lbl_batch) , np.squeeze(mahal_dist)):
+                    out_string = origin.decode('utf-8') + ',' + str(label) + ',' + ','.join([str(m) for m in mahal]) + '\n'
+                    fob_mahal.write(out_string)
+
+                for origin, label, lgm in zip(origins, np.squeeze(lbl_batch), lgm_space[0].squeeze()):
+                    out_string = origin.decode('utf-8') + ',' + str(label) + ',' + ','.join([str(l) for l in lgm]) + '\n'
+                    fob_lgm_space.write(out_string)
                 
                 # # Store results from evaluation step
                 # # Calculate confusion matrix for all outputs
@@ -1068,6 +1094,8 @@ class ResNet(object):
                 #     for origin, lbl, lbl_t in zip(origins, lbl_predict[0], lbl_batch):
                 #         out_string = origin.decode("utf-8") + ',' + '{:d}'.format(lbl_t[0]) + ',' + '{:d}'.format(np.squeeze(np.argmax(lbl))) + ',' + ','.join(['{:f}'.format(l) for l in np.squeeze(lbl)]) + '\n'
                 #         fob.write(out_string)
+
+
                 
                 # # Show progress in stdout
                 # # batchCounter = 0
@@ -1075,15 +1103,22 @@ class ResNet(object):
             # except:
                 # pass
             # fob_results_list.close()
+
+            if len(P_list[-1].shape) == 1:
+                P_list[-1] = np.expand_dims(P_list[-1], axis=0)
+            if len(label_list[-1].shape) == 0:
+                label_list[-1] = np.expand_dims(label_list[-1], axis=0)
+
             P = np.concatenate(P_list)
             mahal_dists = np.concatenate(mahal_dist_list).squeeze()
             labels = np.concatenate(label_list)
             prb = np.asarray([p[l] for p,l in zip(P, labels)])
 
-            fob = open(os.path.join(output_folder, 'mahal_dists__' + self.dataset + '.csv'), 'w+')
-            for mahal_dist, label in zip(mahal_dists, labels):
-                out_string = str(label) + ',' + ','.join([str(m) for m in mahal_dist]) + '\n'
-                fob.write(out_string)
+            # fob = open(os.path.join(output_folder, 'mahal_dists__' + self.dataset + '.csv'), 'w+')
+            # for mahal_dist, label in zip(mahal_dists, labels):
+            #     out_string = str(label) + ',' + ','.join([str(m) for m in mahal_dist]) + '\n'
+            #     fob.write(out_string)
+            # fob.close()
 
             # Print confusion matrix for each output
             print('\n')
