@@ -9,8 +9,8 @@ class Dataset(superDataset.Dataset):
     
     def __init__(self,
                     name = 'OSD Randers Lot1',
-                    rawFolder = 'data/raw/OSD_Ra1',
-                    processFolder = 'data/processed/OSD_Ra1',
+                    rawFolder = 'data/raw/OSD_Ra1_eq',
+                    processFolder = 'data/processed/OSD_Ra1_eq',
                     numShards = 10):
         super(Dataset, self).__init__(name = name, rawFolder = rawFolder, processFolder = processFolder, numShards = numShards)
 
