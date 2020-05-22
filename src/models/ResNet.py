@@ -17,6 +17,7 @@ from tensorflow.contrib.layers.python.layers import layers as layers_lib
 from tensorflow.python import pywrap_tensorflow
 import math
 import numpy as np
+import tqdm
 
 # For preprocessing_factory
 # import ast
@@ -746,7 +747,7 @@ class ResNet(object):
                 lgm_space_trains = []
                 labels_epoch = []
                  # Loop through all batches of examples
-                for batchCounter in range(math.ceil(float(dataset_sizes[0])/float(self.batch_size))):
+                for batchCounter in tqdm.tqdm(range(math.ceil(float(dataset_sizes[0])/float(self.batch_size))), desc='Training batch'):
                     # Grab an image and label batch from the validation set
                     image_batch, lbl_batch, *args = sess.run(input_getBatch)
                     labels_epoch.append(lbl_batch)
@@ -772,7 +773,7 @@ class ResNet(object):
                         CMat.Append(lbl_idx,lbl_idx_predict)
                     # Show progress in stdout
                     # self._show_progress('TR', epoch_n, batchCounter, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, loss_Lgm, CMatsTrain)
-                    self._show_progress2('TR', epoch_n, batchCounter, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, loss_Lgm, Lcls, loss_func.lmbda*Llkd, CMatsTrain[0].accuracy(), np.diag(LGM_distances.squeeze()[:,lbl_batch.squeeze()]).max())
+                    # self._show_progress2('TR', epoch_n, batchCounter, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, loss_Lgm, Lcls, loss_func.lmbda*Llkd, CMatsTrain[0].accuracy(), np.diag(LGM_distances.squeeze()[:,lbl_batch.squeeze()]).max())
                 print('\n')
                 self._show_progress2('TR', epoch_n, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, Lgm_train/batchCounter, Lcls_train/batchCounter, Llkd_train/batchCounter, CMatsTrain[0].accuracy())
                 # Print accumulated confusion matricx for each output
@@ -816,7 +817,7 @@ class ResNet(object):
                 ###################
 
                 if (tf_dataset_val is not None): # Skip validation step, if there is no validation dataset
-                    utils.show_message('Running validation epoch no: {0}'.format(epoch_n),lvl=1)
+                    # utils.show_message('Running validation epoch no: {0}'.format(epoch_n),lvl=1)
                     # Reset confusion matrices and accumulated loss
                     for CMat in CMatsVal:
                         CMat.Reset()
@@ -826,7 +827,7 @@ class ResNet(object):
                     lgm_space_vals = []
                     labels_epoch = []
                     # Loop through all batches of examples
-                    for batchCounter in range(math.ceil(float(dataset_sizes[1])/float(self.batch_size))):
+                    for batchCounter in tqdm.tqdm(range(math.ceil(float(dataset_sizes[1])/float(self.batch_size))), desc='Validation batch'):
                         # Grab an image and label batch from the validation set
                         image_batch, lbl_batch, *args = sess.run(tf_input_getBatch_val)
                         labels_epoch.append(lbl_batch)
@@ -853,7 +854,8 @@ class ResNet(object):
                         lgm_space_vals.append(lgm_space_val)
                         # Show progress in stdout
                         # self._show_progress('VA', epoch_n, batchCounter, math.ceil(float(dataset_sizes[1])/float(self.batch_size))-1, loss_Lgm, CMatsVal)
-                        self._show_progress2('VA', epoch_n, batchCounter, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, loss_Lgm, Lcls/self.batch_size, loss_func.lmbda*Llkd/self.batch_size, CMatsVal[0].accuracy(), np.diag(LGM_distances.squeeze()[:,lbl_batch.squeeze()]).max())
+                        # self._show_progress2('VA', epoch_n, batchCounter, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, loss_Lgm, Lcls/self.batch_size, loss_func.lmbda*Llkd/self.batch_size, CMatsVal[0].accuracy(), np.diag(LGM_distances.squeeze()[:,lbl_batch.squeeze()]).max())
+                        # self._show_progress2('VA', epoch_n, batchCounter, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, loss_Lgm, Lcls/self.batch_size, loss_func.lmbda*Llkd/self.batch_size, CMatsVal[0].accuracy(), LGM_distances[:,:,:,:,lbl_batch.squeeze()].squeeze())
                     print('\n')
                     self._show_progress2('VA', epoch_n, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, math.ceil(float(dataset_sizes[0])/float(self.batch_size))-1, Lgm_val/batchCounter, Lcls_val/batchCounter, Llkd_val/batchCounter, CMatsVal[0].accuracy())
                     
@@ -1043,7 +1045,7 @@ class ResNet(object):
             fob_lgm_space = open(os.path.join(output_folder, 'LGM_space__' + self.dataset + '.csv'), 'w+')
 
             # Loop through all batches of examples
-            for batchCounter in range(math.ceil(float(dataset_sizes[2])/float(args_evaluate.batch_size))):
+            for batchCounter in tqdm.tqdm(range(math.ceil(float(dataset_sizes[2])/float(args_evaluate.batch_size))), desc='Test batch'):
             # while 1:
                 # Grab an image and label batch from the test set
                 image_batch, lbl_batch, class_text, height, width, channels, origins = tf_session.run(tf_input_getBatch_test)
