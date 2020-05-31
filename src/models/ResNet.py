@@ -274,7 +274,7 @@ class ResNet(object):
             # self.lbls_dim = 2
             self.image_dims = [None, None, 19]
             # self.fc_dims = [8,8]
-        elif dataset == 'DS_OSD_Ra':
+        elif dataset == 'OSD_Ra':
             # self.lbls_dim = 2
             self.image_dims = [None, None, 19]
             # self.fc_dims = [8,8]
@@ -528,7 +528,7 @@ class ResNet(object):
             DS = DS_OSD_Ra1W.Dataset()
         elif (self.dataset == 'OSD_Weeds'):
             DS = DS_OSD_Weeds.Dataset()
-        elif (self.dataset == 'DS_OSD_Ra'):
+        elif (self.dataset == 'OSD_Ra'):
             DS = DS_OSD_Ra.Dataset()
         tf_dataset_list, dataset_sizes = DS.get_dataset_list(data_source = args_train.data_source,
                                                             data_folder = args_train.data_folder,
@@ -960,7 +960,7 @@ class ResNet(object):
             DS = DS_OSD_Ra1W.Dataset()
         elif (self.dataset == 'OSD_Weeds'):
             DS = DS_OSD_Weeds.Dataset()
-        elif (self.dataset == 'DS_OSD_Ra'):
+        elif (self.dataset == 'OSD_Ra'):
             DS = DS_OSD_Ra.Dataset()
         tf_dataset_list, dataset_sizes = DS.get_dataset_list(data_source = args_evaluate.data_source,
                                                             data_folder = args_evaluate.data_folder,
