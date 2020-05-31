@@ -1004,7 +1004,9 @@ class ResNet(object):
             # Locate checkpoints and load the latest metagraph and checkpoint
             ckpt = tf.train.get_checkpoint_state(self.dir_checkpoints)
             saver = tf.train.import_meta_graph(ckpt.model_checkpoint_path + '.meta')
-            saver.restore(tf_session, tf.train.latest_checkpoint(self.dir_checkpoints))
+            ckpt_to_restore = tf.train.latest_checkpoint(self.dir_checkpoints)
+            saver.restore(tf_session, ckpt_to_restore)
+            ckpt_model_id = os.path.splitext(ckpt_to_restore)[1][1:]
 
             # Grab input and output tensors
             graph = tf.get_default_graph()
@@ -1020,7 +1022,7 @@ class ResNet(object):
 
             tf_centers = graph.get_tensor_by_name('LGM/LGM_Distributions/centers:0')
             centers = tf_centers.eval()
-            fob_centers = open(os.path.join(output_folder, 'centers.csv'), 'w+')
+            fob_centers = open(os.path.join(output_folder, 'centers__' + ckpt_model_id + '.csv'), 'w+')
             for center in centers.transpose():
                 out_string = ','.join([str(c) for c in center]) + '\n'
                 fob_centers.write(out_string)
@@ -1029,7 +1031,7 @@ class ResNet(object):
             
             tf_log_covars = graph.get_tensor_by_name('LGM/LGM_Distributions/log_covars:0')
             log_covars = tf_log_covars.eval()
-            fob_log_covars = open(os.path.join(output_folder, 'log_covars.csv'), 'w+')
+            fob_log_covars = open(os.path.join(output_folder, 'log_covars__' + ckpt_model_id + '.csv'), 'w+')
             for log_covar in log_covars.transpose():
                 out_string = ','.join([str(l) for l in log_covar]) + '\n'
                 fob_log_covars.write(out_string)
@@ -1058,9 +1060,9 @@ class ResNet(object):
             mahal_dist_list = []
             label_list = []
 
-            fob_mahal = open(os.path.join(output_folder, 'mahal_dists__' + self.dataset + '.csv'), 'w+')
+            fob_mahal = open(os.path.join(output_folder, 'mahal_dists__' + self.dataset + '__' + ckpt_model_id + '.csv'), 'w+')
 
-            fob_lgm_space = open(os.path.join(output_folder, 'LGM_space__' + self.dataset + '.csv'), 'w+')
+            fob_lgm_space = open(os.path.join(output_folder, 'LGM_space__' + self.dataset + '__' + ckpt_model_id + '.csv'), 'w+')
 
             # Loop through all batches of examples
             for batchCounter in tqdm.tqdm(range(math.ceil(float(dataset_sizes[2])/float(args_evaluate.batch_size))), desc='Test batch'):
