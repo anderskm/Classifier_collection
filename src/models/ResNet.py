@@ -46,6 +46,8 @@ import src.data.datasets.DS_Barley_D0 as DS_Barley_D0
 import src.data.datasets.DS_Barley_Next as DS_Barley_Next
 import src.data.datasets.DS_OSD_Ra1 as DS_OSD_Ra1
 import src.data.datasets.DS_OSD_Ra1W as DS_OSD_Ra1W
+import src.data.datasets.DS_OSD_Weeds as DS_OSD_Weeds
+import src.data.datasets.DS_OSD_Ra as DS_OSD_Ra
 # import src.data.datasets.DS_Seeds_D0 as DS_Seeds_D0
 # import src.data.datasets.DS_Barley_Next as DS_Barley_Next
 # import src.data.datasets.DS_Barley_Next_Stratified as DS_Barley_Next_Stratified
@@ -265,6 +267,14 @@ class ResNet(object):
             self.image_dims = [None, None, 19]
             # self.fc_dims = [8,8]
         elif dataset == 'OSD_Ra1W':
+            # self.lbls_dim = 2
+            self.image_dims = [None, None, 19]
+            # self.fc_dims = [8,8]
+        elif dataset == 'OSD_Weeds':
+            # self.lbls_dim = 2
+            self.image_dims = [None, None, 19]
+            # self.fc_dims = [8,8]
+        elif dataset == 'DS_OSD_Ra':
             # self.lbls_dim = 2
             self.image_dims = [None, None, 19]
             # self.fc_dims = [8,8]
@@ -516,6 +526,10 @@ class ResNet(object):
             DS = DS_OSD_Ra1.Dataset()
         elif (self.dataset == 'OSD_Ra1W'):
             DS = DS_OSD_Ra1W.Dataset()
+        elif (self.dataset == 'OSD_Weeds'):
+            DS = DS_OSD_Weeds.Dataset()
+        elif (self.dataset == 'DS_OSD_Ra'):
+            DS = DS_OSD_Ra.Dataset()
         tf_dataset_list, dataset_sizes = DS.get_dataset_list(data_source = args_train.data_source,
                                                             data_folder = args_train.data_folder,
                                                             shuffle_before_split=args_train.shuffle_before_split,
@@ -944,6 +958,10 @@ class ResNet(object):
             DS = DS_OSD_Ra1.Dataset()
         elif (self.dataset == 'OSD_Ra1W'):
             DS = DS_OSD_Ra1W.Dataset()
+        elif (self.dataset == 'OSD_Weeds'):
+            DS = DS_OSD_Weeds.Dataset()
+        elif (self.dataset == 'DS_OSD_Ra'):
+            DS = DS_OSD_Ra.Dataset()
         tf_dataset_list, dataset_sizes = DS.get_dataset_list(data_source = args_evaluate.data_source,
                                                             data_folder = args_evaluate.data_folder,
                                                             data_file = args_evaluate.data_file,

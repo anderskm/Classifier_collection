@@ -89,7 +89,9 @@ def parse_args():
                                  'okra_next',
                                  'okra_d0',
                                  'OSD_Ra1',
-                                 'OSD_Ra1W'],
+                                 'OSD_Ra1W',
+                                 'OSD_Weeds',
+                                 'DS_OSD_Ra'],
                         #required = True,
                         help='The name of dataset')  
     
@@ -143,7 +145,7 @@ def main():
     if args.make_dataset:
         utils.show_message('Fetching raw dataset: {0}'.format(args.dataset), lvl = 1)
         dataset_manager.make_dataset(args.dataset)
-        
+         
     # Make dataset
     if args.process_dataset:
         utils.show_message('Processing raw dataset: {0}'.format(args.dataset), lvl = 1)
