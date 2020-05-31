@@ -49,6 +49,16 @@ class Dataset(superDataset.Dataset):
         return [class_name]
         
     class ImageReader(superDataset.Dataset.ImageReader):
+
+        def __init__(self):
+            super(superDataset.Dataset.ImageReader, self).__init__()
+            self.tf_raw_image = tf.placeholder(dtype=tf.uint8)
+            self.tf_encoded_image = tf.image.encode_png(
+                self.tf_raw_image,
+                compression=-1,
+                name='Image_encoder'
+            )
+
         def read(self, filename, tf_session):
             encoded_img = PIL.Image.open(filename)
             img = np.empty(encoded_img.size, dtype=np.uint8)
@@ -79,14 +89,9 @@ class Dataset(superDataset.Dataset):
             return unpacked_image
 
         def encode(self, raw_image, tf_session=None):
-            tf_raw_image = tf.placeholder(dtype=tf.uint8)
-            tf_encoded_image = tf.image.encode_png(
-                tf_raw_image,
-                compression=-1,
-                name='Image_encoder'
-            )
-            encoded_image = tf_session.run(tf_encoded_image,
-                feed_dict={tf_raw_image: raw_image.astype('uint8')})
+            
+            encoded_image = tf_session.run(self.tf_encoded_image,
+                feed_dict={self.tf_raw_image: raw_image.astype('uint8')})
             return encoded_image, 'png'
 
         def decode(self, encoded_image):
