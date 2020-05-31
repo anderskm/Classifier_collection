@@ -9,6 +9,7 @@ import random
 import sys
 import tensorflow as tf
 import time
+import tqdm
 import unittest
 
 
@@ -193,9 +194,9 @@ class Dataset(object):
 
         image_reader = self.ImageReader()
 
-        for i in range(num_images):
-            sys.stdout.write('\r>> Converting image %d/%d' % (i + 1, num_images))
-            sys.stdout.flush()
+        for i in tqdm.tqdm(range(num_images), desc='Converting image', leave=False):
+            # sys.stdout.write('\r>> Converting image %d/%d' % (i + 1, num_images))
+            # sys.stdout.flush()
 
             # Read the filename:
             raw_image = image_reader.read(listOfFilenames[i], tf_session)
@@ -269,8 +270,8 @@ class Dataset(object):
         shards_of_filenames, shards_of_corresponding_class_names = self._split_data_examples_to_shards(list_of_filenames, list_of_corresponding_class_names, list_of_unique_classes, self.numShards, list_of_grouping_data)
         
         with tf.Session('') as tf_session:
-            for shard_n in range(self.numShards):
-                self._show_message('Processing shard %d/%d' % (shard_n+1,self.numShards))
+            for shard_n in tqdm.tqdm(range(self.numShards), desc='Creating shard'):
+                # self._show_message('Processing shard %d/%d' % (shard_n+1,self.numShards))
                 tf_filename = self._get_output_filename(self.processFolder, shard_n, self.numShards)
 
                 with tf.python_io.TFRecordWriter(tf_filename) as tfrecord_writer:
