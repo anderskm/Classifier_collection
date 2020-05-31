@@ -244,6 +244,7 @@ class Dataset(object):
             # Split into shards
             # shards = [list_of_filenames_and_classes_for_unique_class[i::num_shards] for i in iter(range(num_shards))]
         shards = [list_of_filenames_and_classes[i::num_shards] for i in iter(range(num_shards))]
+        
         # Process each shard
         for shard_n in range(num_shards):
             shard = list(map(list, zip(*shards[shard_n]))) # Transpose list of lists (from [[filename1, class1], ...] to [[filenames],[classes]])
@@ -406,11 +407,17 @@ class Dataset(object):
                 if (shard_val == None) or (len(shard_val) < 0):
                     tf_dataset_val = None
                 else:
-                    dataset_filenames_val = dataset_filenames[shard_val[0]]
+                    # dataset_filenames_val = dataset_filenames[shard_val[0]]
+
+                    dataset_filenames_val = []
+                    for this_shard_val in shard_val:
+                        dataset_filenames_val.append(dataset_filenames[this_shard_val])
+                        dataset_filenames_train.remove(dataset_filenames[this_shard_val])
+
                     tf_dataset_val = tf.data.TFRecordDataset(dataset_filenames_val)
                     print('Validation shard:')
                     print(dataset_filenames_val)
-                    dataset_filenames_train.remove(dataset_filenames_val)
+                    # dataset_filenames_train.remove(dataset_filenames_val)
                 # Set test set
                 if (shard_test == None) or (len(shard_test) < 0):
                     tf_dataset_test = None
