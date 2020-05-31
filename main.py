@@ -91,7 +91,7 @@ def parse_args():
                                  'OSD_Ra1',
                                  'OSD_Ra1W',
                                  'OSD_Weeds',
-                                 'DS_OSD_Ra'],
+                                 'OSD_Ra'],
                         #required = True,
                         help='The name of dataset')  
     
