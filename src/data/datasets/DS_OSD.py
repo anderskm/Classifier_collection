@@ -20,11 +20,11 @@ class Dataset(superDataset.Dataset):
     def _split_data_examples_to_shards(self, list_of_filenames, list_of_corresponding_class_names, list_of_unique_classes, num_shards, list_of_grouping_data):
 
         # list_of_lots = [os.path.split(os.path.split(filename)[0])[1] for filename in list_of_filenames]
-        list_of_labs = [os.path.normpath(filename).split('\\')[3] for filename in list_of_filenames]
+        list_of_labs = [os.path.normpath(filename).split(os.sep)[3] for filename in list_of_filenames]
         labs = list(set(list_of_labs))
         labs.sort()
 
-        list_of_labs_species = [os.path.normpath(filename).split('\\')[3:5] for filename in list_of_filenames]
+        list_of_labs_species = [os.path.normpath(filename).split(os.sep)[3:5] for filename in list_of_filenames]
 
         unique_labs_species = [list(x) for x in set(tuple(x) for x in list_of_labs_species)]
 
