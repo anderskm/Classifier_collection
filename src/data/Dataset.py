@@ -218,7 +218,7 @@ class Dataset(object):
 
             # Write example to TFrecord
             tfrecord_writer.write(tf_example.SerializeToString())
-        print('\n')
+        # print('\n')
 
     def _split_data_examples_to_shards(self, list_of_filenames, list_of_corresponding_class_names, list_of_unique_classes, num_shards, list_of_grouping_data):
         shards_of_filenames = []
