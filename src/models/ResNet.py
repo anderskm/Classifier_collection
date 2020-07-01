@@ -920,7 +920,7 @@ class ResNet(object):
                     writer_validation.add_summary(summaries, global_step=epoch_n)
                 
                 # Save checkpoint for this epoch
-                if epoch_n % 5 == 0 or epoch_n < 5:
+                if epoch_n % 1 == 0 or epoch_n < 5:
                     saver.save(sess,os.path.join(self.dir_checkpoints, self.model + '.model'), global_step=epoch_n)
                 
             
