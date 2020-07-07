@@ -1012,11 +1012,25 @@ class ResNet(object):
    
             # Locate checkpoints and load the latest metagraph and checkpoint
             ckpt = tf.train.get_checkpoint_state(self.dir_checkpoints)
-            saver = tf.train.import_meta_graph(ckpt.model_checkpoint_path + '.meta')
-            ckpt_to_restore = tf.train.latest_checkpoint(self.dir_checkpoints)
-            saver.restore(tf_session, ckpt_to_restore)
-            ckpt_model_id = os.path.splitext(ckpt_to_restore)[1][1:]
-            print('Checkpoint: ', ckpt, ckpt_to_restore, ckpt_model_id)
+
+            use_latest_checkpoint = False
+            if (args_evaluate.epoch_no is None):
+                use_latest_checkpoint = True
+            else:
+                match_idx = [i for i,p in enumerate(ckpt.all_model_checkpoint_paths) if p.split('-')[-1] == str(args_evaluate.epoch_no)]
+                if match_idx:
+                    use_latest_checkpoint = False
+                    checkpoint_model_path = ckpt.all_model_checkpoint_paths[match_idx[0]]
+                else:
+                    use_latest_checkpoint = True
+            if use_latest_checkpoint:
+                checkpoint_model_path = ckpt.model_checkpoint_path
+            
+            saver = tf.train.import_meta_graph(checkpoint_model_path + '.meta')
+            # ckpt_to_restore = tf.train.latest_checkpoint(self.dir_checkpoints)
+            saver.restore(tf_session, checkpoint_model_path)
+            ckpt_model_id = os.path.splitext(checkpoint_model_path)[1][1:]
+            print('Checkpoint: ', ckpt, checkpoint_model_path, ckpt_model_id)
 
             # Grab input and output tensors
             graph = tf.get_default_graph()
