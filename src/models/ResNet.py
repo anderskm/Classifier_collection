@@ -284,6 +284,10 @@ class ResNet(object):
             # self.lbls_dim = 2
             self.image_dims = [None, None, 19]
             # self.fc_dims = [8,8]
+        elif dataset == 'OSD_new_wc':
+            # self.lbls_dim = 2
+            self.image_dims = [None, None, 19]
+            # self.fc_dims = [8,8]
         else:
             raise ValueError('Selected Dataset is not supported by model: ' + self.model)
 
