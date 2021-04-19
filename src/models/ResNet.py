@@ -762,6 +762,7 @@ class ResNet(object):
             ckpt = tf.train.get_checkpoint_state(self.dir_checkpoints)
             epoch_start = 0
             if ckpt and ckpt.model_checkpoint_path:
+                print('Loading checkpoint: ' + ckpt.model_checkpoint_path)
                 saver.restore(sess, ckpt.model_checkpoint_path)
                 ckpt_name = os.path.basename(ckpt.model_checkpoint_path)
                 epoch_start = int(ckpt_name.split('-')[-1])+1
@@ -782,7 +783,7 @@ class ResNet(object):
                 lgm_space_trains = []
                 labels_epoch = []
                  # Loop through all batches of examples
-                for batchCounter in tqdm.tqdm(range(math.ceil(float(dataset_sizes[0])/float(self.batch_size))), desc='Training batch'):
+                for batchCounter in tqdm.tqdm(range(math.ceil(float(dataset_sizes[0])/float(self.batch_size))), desc='Training batch {0}/{1}'.format(epoch_n, self.max_epoch)):
                     # Grab an image and label batch from the validation set
                     image_batch, lbl_batch, *args = sess.run(input_getBatch)
                     labels_epoch.append(lbl_batch)
