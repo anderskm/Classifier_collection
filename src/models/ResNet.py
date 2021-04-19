@@ -783,7 +783,7 @@ class ResNet(object):
                 lgm_space_trains = []
                 labels_epoch = []
                  # Loop through all batches of examples
-                for batchCounter in tqdm.tqdm(range(math.ceil(float(dataset_sizes[0])/float(self.batch_size))), desc='Training batch {0}/{1}'.format(epoch_n, self.max_epoch)):
+                for batchCounter in tqdm.tqdm(range(math.ceil(float(dataset_sizes[0])/float(self.batch_size))), desc='Training batch {0}/{1}'.format(epoch_n, self.epoch_max)):
                     # Grab an image and label batch from the validation set
                     image_batch, lbl_batch, *args = sess.run(input_getBatch)
                     labels_epoch.append(lbl_batch)
