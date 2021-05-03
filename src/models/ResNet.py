@@ -52,6 +52,7 @@ import src.data.datasets.DS_OSD as DS_OSD
 import src.data.datasets.DS_OSD_new_wc as DS_OSD_new_wc
 import src.data.datasets.DS_OSD_Weeds_new_wc as DS_OSD_Weeds_new_wc
 import src.data.datasets.DS_OSD_seed as DS_OSD_seed
+import src.data.datasets.DS_OSD_Weeds_seed as DS_OSD_Weeds_seed
 # import src.data.datasets.DS_Seeds_D0 as DS_Seeds_D0
 # import src.data.datasets.DS_Barley_Next as DS_Barley_Next
 # import src.data.datasets.DS_Barley_Next_Stratified as DS_Barley_Next_Stratified
@@ -295,6 +296,9 @@ class ResNet(object):
             self.image_dims = [None, None, 19]
             # self.fc_dims = [8,8]
         elif dataset == 'OSD_seed':
+            # self.lbls_dim = 2
+            self.image_dims = [None, None, 19]
+        elif dataset == 'OSD_Weeds_seed':
             # self.lbls_dim = 2
             self.image_dims = [None, None, 19]
         else:
@@ -557,6 +561,9 @@ class ResNet(object):
             DS = DS_OSD_Weeds_new_wc.Dataset()
         elif (self.dataset == 'OSD_seed'):
             DS = DS_OSD_seed.Dataset()
+        elif (self.dataset == 'OSD_Weeds_seed'):
+            DS = DS_OSD_Weeds_seed.Dataset()
+            
         tf_dataset_list, dataset_sizes = DS.get_dataset_list(data_source = args_train.data_source,
                                                             data_folder = args_train.data_folder,
                                                             shuffle_before_split=args_train.shuffle_before_split,
@@ -998,6 +1005,8 @@ class ResNet(object):
             DS = DS_OSD_Weeds_new_wc.Dataset()
         elif (self.dataset == 'OSD_seed'):
             DS = DS_OSD_seed.Dataset()
+        elif (self.dataset == 'OSD_Weeds_seed'):
+            DS = DS_OSD_Weeds_seed.Dataset()
         tf_dataset_list, dataset_sizes = DS.get_dataset_list(data_source = args_evaluate.data_source,
                                                             data_folder = args_evaluate.data_folder,
                                                             data_file = args_evaluate.data_file,

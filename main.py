@@ -95,7 +95,8 @@ def parse_args():
                                  'OSD',
                                  'OSD_new_wc',
                                  'OSD_Weeds_new_wc',
-                                 'OSD_seed'],
+                                 'OSD_seed',
+                                 'OSD_Weeds_seed'],
                         #required = True,
                         help='The name of dataset')  
     
