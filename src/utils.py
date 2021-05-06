@@ -117,8 +117,9 @@ def save_dict(dict, path, filename):
         json.dump(dict, fp)
 
 def save_model_configuration(args, path):
+    datetime_string = datetime.datetime.now().strftime('%Y%m%dT%H%M%S')
     args_dict = vars(args)
-    filename = 'configuration.json'
+    filename = 'configuration_' + datetime_string +'.json'
     save_dict(args_dict,path,filename)
 
 def load_model_configuration(path):
