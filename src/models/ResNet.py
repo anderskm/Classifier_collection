@@ -34,7 +34,7 @@ import src.data.util_data as util_data
 # import src.data.datasets.seeds as seeds_dataset
 
 # TODO: Move datasets to main.py
-import src.data.datasets.DS_PSDs_no_grass as DS_PSDs
+# import src.data.datasets.DS_PSDs_no_grass as DS_PSDs
 # import src.data.datasets.DS_Seeds_abnormal as DS_Seeds
 import src.data.datasets.DS_Okra as DS_Okra
 import src.data.datasets.DS_Okra_Abnormal as DS_Okra_Abnormal
@@ -44,15 +44,16 @@ import src.data.datasets.DS_Barley as DS_Barley
 import src.data.datasets.DS_Barley_Abnormal as DS_Barley_Abnormal
 import src.data.datasets.DS_Barley_D0 as DS_Barley_D0
 import src.data.datasets.DS_Barley_Next as DS_Barley_Next
-import src.data.datasets.DS_OSD_Ra1 as DS_OSD_Ra1
-import src.data.datasets.DS_OSD_Ra1W as DS_OSD_Ra1W
-import src.data.datasets.DS_OSD_Weeds as DS_OSD_Weeds
-import src.data.datasets.DS_OSD_Ra as DS_OSD_Ra
+# import src.data.datasets.DS_OSD_Ra1 as DS_OSD_Ra1
+# import src.data.datasets.DS_OSD_Ra1W as DS_OSD_Ra1W
+# import src.data.datasets.DS_OSD_Weeds as DS_OSD_Weeds
+# import src.data.datasets.DS_OSD_Ra as DS_OSD_Ra
 import src.data.datasets.DS_OSD as DS_OSD
 import src.data.datasets.DS_OSD_new_wc as DS_OSD_new_wc
 import src.data.datasets.DS_OSD_Weeds_new_wc as DS_OSD_Weeds_new_wc
 import src.data.datasets.DS_OSD_seed as DS_OSD_seed
 import src.data.datasets.DS_OSD_Weeds_seed as DS_OSD_Weeds_seed
+import src.data.datasets.DS_OSD_seed_new_wc as DS_OSD_seed_new_wc
 # import src.data.datasets.DS_Seeds_D0 as DS_Seeds_D0
 # import src.data.datasets.DS_Barley_Next as DS_Barley_Next
 # import src.data.datasets.DS_Barley_Next_Stratified as DS_Barley_Next_Stratified
@@ -299,6 +300,9 @@ class ResNet(object):
             # self.lbls_dim = 2
             self.image_dims = [None, None, 19]
         elif dataset == 'OSD_Weeds_seed':
+            # self.lbls_dim = 2
+            self.image_dims = [None, None, 19]
+        elif dataset == 'OSD_seed_new_wc':
             # self.lbls_dim = 2
             self.image_dims = [None, None, 19]
         else:
@@ -563,6 +567,8 @@ class ResNet(object):
             DS = DS_OSD_seed.Dataset()
         elif (self.dataset == 'OSD_Weeds_seed'):
             DS = DS_OSD_Weeds_seed.Dataset()
+        elif (self.dataset == 'OSD_seed_new_wc'):
+            DS = DS_OSD_seed_new_wc.Dataset()
             
         tf_dataset_list, dataset_sizes = DS.get_dataset_list(data_source = args_train.data_source,
                                                             data_folder = args_train.data_folder,
@@ -1007,6 +1013,8 @@ class ResNet(object):
             DS = DS_OSD_seed.Dataset()
         elif (self.dataset == 'OSD_Weeds_seed'):
             DS = DS_OSD_Weeds_seed.Dataset()
+        elif (self.dataset == 'OSD_seed_new_wc'):
+            DS = DS_OSD_seed_new_wc.Dataset()
         tf_dataset_list, dataset_sizes = DS.get_dataset_list(data_source = args_evaluate.data_source,
                                                             data_folder = args_evaluate.data_folder,
                                                             data_file = args_evaluate.data_file,
