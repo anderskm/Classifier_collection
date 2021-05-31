@@ -124,3 +124,19 @@ class Dataset(superDataset.Dataset):
 
             return np.concatenate((red_channel, green_channel, blue_channel), axis=-1).astype(dtype=np.uint8)
 
+    def _filename_to_TFexample(self, filename):
+        # Read the filename:
+        imreader = self.ImageReader()
+        # img_string = tf.io.read_file(filename)
+        # raw_image = tf.image.decode_png(img_string)
+        raw_image = imreader(filename)
+        
+        img_shape = tf.shape(raw_image)
+
+        # Class
+        # splits = tf.string_split([filename], "/")
+        # splits = tf.string_split([splits.values[-1]],"\\")
+        # classIdx = tf.string_to_number(splits.values[-2], out_type=tf.int64)
+        classIdx = 0
+
+        return raw_image, [classIdx], '-', img_shape[0], img_shape[1], img_shape[2], filename
