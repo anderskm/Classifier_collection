@@ -129,7 +129,7 @@ class Dataset(superDataset.Dataset):
         imreader = self.ImageReader()
         # img_string = tf.io.read_file(filename)
         # raw_image = tf.image.decode_png(img_string)
-        raw_image = imreader(filename)
+        raw_image = imreader.read(filename)
         
         img_shape = tf.shape(raw_image)
 
