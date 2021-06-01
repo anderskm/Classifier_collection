@@ -1,4 +1,4 @@
-import src.data.datasets.DS_OSD as superDataset
+import src.data.datasets.DS_OSD_base as superDataset
 import os
 import random
 from operator import itemgetter
